@@ -23,6 +23,8 @@ This, combined with [upcoming additions](#future-versions), provides an alternat
 
 Initially created for personal use, but I decided to make it user-friendly enough and upload it so that everyone can use it!
 
+**Grab the latest release [here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
+
 ## How To Install
 To install this script, move the script file (ending with .jsx) to the following locations:
 
