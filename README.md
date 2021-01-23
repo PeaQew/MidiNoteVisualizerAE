@@ -64,7 +64,7 @@ I currently call this version 0.8 because I have two updates planned.
 Version 0.9 will have improvements in the UI, especially in the settings window. This sets up version 1.0, which will include the following additions:
 - **Piano key visuals:** You will have the option to generate a composition (or png file, if that's possible) with a visual representation of all the piano keys (think of a literal piano but vertically).
 - **Bar lines:** A visual representation of the beats and steps of the song.
-- **Single MIDI file instrument seperation:** Currently, you don't have the option to seperate different channels (or tracks/instruments), meaning you have to export your MIDI files per instrument.
+- **Single MIDI file instrument seperation:** Currently, you don't have the option to seperate different channels (or tracks/instruments), meaning you have to export your MIDI files per instrument. In the future, you will be able to use a single MIDI file and change properties, such as color, for each seperate channel/track
 
 These changes require better UI to allow for customization.
 
