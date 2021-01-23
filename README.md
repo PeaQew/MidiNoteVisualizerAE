@@ -25,7 +25,7 @@ Initially created for personal use, but I decided to make it user-friendly enoug
 
 **Grab the latest release [here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
 
-The script includes a MIDI File Reader made by David Van Brink, which you can find [here](http://omino.com/pixelblog/2011/12/26/ae-hello-again-midi/)
+The script includes a MIDI File Reader made by David Van Brink, which you can find [here](http://omino.com/pixelblog/2011/12/26/ae-hello-again-midi/).
 
 ## How To Install
 To install this script, move the script file (ending with .jsx) to the following locations:
@@ -74,7 +74,8 @@ Version 1.0 is what I would call "finished", as in, I don't need it to do more t
 
 ## Settings File
 This script will work with an XML settings file called `pq_midi_settings.xml` that is expected to be in the same location as the script. The contents of the file are loaded when the script starts up. You can save the current settings from the settings window as defaults.
-For this, the script requires write access. You can enable it under `Edit -> Preferences -> Scripting & Expressions -> Allow Scripts to Write Files and Access Network`. If you don't want to enable this option, you can still manually edit the XML. You can also completely get rid of any read and write operations by opening the script and changing the first line into `var USE_MIDI_SETTINGS_FILE = true;`.
+
+For this, the script requires write access. You can enable it under `Edit -> Preferences -> Scripting & Expressions -> Allow Scripts to Write Files and Access Network`. If you don't want to enable this option, you can still manually edit the XML. You can also completely get rid of any read and write operations by opening the script and changing the first line into `var USE_MIDI_SETTINGS_FILE = false;`.
 
 ## Contact Me
 If you have any problems, questions or want to request new features, here is where you can contact me:
