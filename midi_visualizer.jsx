@@ -6,12 +6,8 @@
 > version: 0.8 (23.01.2021)
 > description:
 	* This ExtendScript tool creates a piano roll-style MIDI visualizer inside of Adobe After Effects.
-	* It creates a composition for each MIDI file provided and a composition that brings everything together and scrolls all other comps.
 
 	* Initially created for personal use but built around the SciptUI module to make it more user-friendly and somewhat customizable.
-	* New features are not planned to be added unless there is demand for it (from myself or per request).
-	
-	* MacOS support hasn't been tested but it should work.
 
 	* This script includes the OMINO MIDI FILE READER by omino, with light modifications (see below).
 
@@ -758,8 +754,34 @@ function showSettingsWindow() {
             settingsWndw.close();
         }
     }
+    settingsWndw.add("Button", undefined, "Show Project Page").onClick = function() {
+        if (Window.confirm("This will open your browser and redirect you to the Github page.\nProceed?")) {
+            if (hasWriteAndNetworkAccess()) {
+                var userOSVer = getOS();
+                if (userOSVer == "MAC") {
+                    var urlLaunchCode = "Open"; // Mac
+                } else {
+                    var urlLaunchCode = "cmd.exe /c Start"; // PC
+                }
+                system.callSystem(urlLaunchCode + " " + "https://github.com/PeaQew/MidiVisualizerAE");
+            }
+        }
+    }
 
     settingsWndw.show();
+}
+
+function getOS() {
+
+    var op = $.os;
+
+    var match = op.indexOf("Windows");
+    if (match != (-1)) {
+        var userOS = "PC"; // User is on PC
+    } else {
+        var userOS = "MAC"; // User is on MAC
+    }
+    return userOS;
 }
 
 function readMidiFiles() {
@@ -1153,7 +1175,7 @@ function MidiCustomSettings() {
     this.dropShadowBlurSize = 16; // The amount of softness applied to the dropShadow effect of the notes.
 
     // These are material colors at 800 weight
-	// TODO: Read and write these to the settings file
+    // TODO: Read and write these to the settings file
     this.presetColors = [
         new PresetColor("Green", [46, 125, 50]),
         new PresetColor("Red", [198, 40, 40]),
@@ -1191,7 +1213,7 @@ function MidiCustomSettings() {
             this.dropShadowBlurSize = parseInt(xmlObj.settings.dropShadowBlurSize, 10);
             this.trailingDuration = parseFloat(xmlObj.settings.trailingDuration);
         } catch (error) {
-            Window.alert("An error occured while reading the settings file.\n\n" + error.message + "\nDefault settings will be used.")
+            Window.alert("An error occured while reading the settings file.\n\nMessage: " + error.message + "\n\nDefault settings will be used.")
             this.revertToDefaultValues();
             return false;
         }
@@ -1200,8 +1222,8 @@ function MidiCustomSettings() {
 
     this.saveToXml = function(xmlObj) {
         if (xmlObj == undefined || xmlObj != typeof XML) {
-			xmlObj = new XML("<configuration><settings></settings></configuration>");
-			xmlObj.filePath = getCurrentWorkingDirectory() + "\\pq_midi_settings.xml"
+            xmlObj = new XML("<configuration><settings></settings></configuration>");
+            xmlObj.filePath = getCurrentWorkingDirectory() + "\\pq_midi_settings.xml"
         }
         xmlObj.settings.noteHitXOffset = this.noteHitXOffset;
         xmlObj.settings.noteYOffset = this.noteYOffset;
@@ -1220,7 +1242,7 @@ function MidiCustomSettings() {
         xmlObj.settings.bpmChangeThreshold = this.bpmChangeThreshold;
         xmlObj.settings.dropShadowBlurSize = this.dropShadowBlurSize;
         xmlObj.settings.trailingDuration = this.trailingDuration;
-        if (canWriteFiles()) {
+        if (hasWriteAndNetworkAccess()) {
             try {
                 var file = new File(xmlObj.filePath);
                 file.open("w");
@@ -1264,18 +1286,19 @@ function readSettingsFile() {
     var filePath = getCurrentWorkingDirectory() + "\\pq_midi_settings.xml";
     var xmlFile = new File(filePath);
     if (!xmlFile.open("r")) {
-        Window.alert("The settings file is missing - default settings will be used.\n\nIf you don't want to use the settings file at all, go to the first line of this script and change it into \n\'var USE_MIDI_SETTINGS_FILE = false;\'");
+        //Window.alert("The settings file is missing - default settings will be used.\n\nIf you don't want to use the settings file at all, go to the first line of this script and change it into \n\'var USE_MIDI_SETTINGS_FILE = false;\'");
         return false;
     }
     var xmlString = xmlFile.read();
     if (!xmlFile.close()) {
-        Window.alert("An error occured while reading the settings file - default settings will be used.");
+        Window.alert("An error occured while closing the settings file - default settings will be used.");
         return false;
     }
     try {
         var xmlObj = new XML(xmlString);
     } catch (error) {
-        Window.alert("An error occured while reading the settings file.\n\n " + error.message);
+        Window.alert("An error occured while reading the settings file.\n\nMessage: " + error.message);
+		return false;
     }
     xmlObj.filePath = filePath;
     return xmlObj;
@@ -1284,7 +1307,7 @@ function readSettingsFile() {
 // Slightly modified version of:
 // https://community.adobe.com/t5/after-effects/how-can-i-check-whether-if-quot-allow-scripts-to-write-files-and-access-network-quot-is-enable-using/td-p/10869640?page=1
 
-function canWriteFiles() {
+function hasWriteAndNetworkAccess() {
     var appVersion, commandID, scriptName, tabName;
 
     appVersion = parseFloat(app.version);
@@ -1299,7 +1322,7 @@ function canWriteFiles() {
     if (isSecurityPrefSet()) return true;
 
     scriptName = $.fileName;
-    Window.alert("\'" + scriptName.split("/").pop() + "\'" + ' requires access to write files.\n' +
+    Window.alert("\'" + scriptName.split("/").pop() + "\'" + ' requires access to write files and perform network operations.\n' +
         'Go to the "' + tabName + '" panel of the application preferences and make sure ' +
         '"Allow Scripts to Write Files and Access Network" is checked.');
 
@@ -1393,11 +1416,11 @@ function createVisualizer() {
     var bpmMap = createBpmMap(parsedMidiFiles[midiCustomSettings.bpmSourceIndex]);
     var timeSigMap = createTimeSignatureMap(parsedMidiFiles[midiCustomSettings.timeSigSourceIndex]);
 
-	// TODO: Re-implement these with customization options
+    // TODO: Re-implement these with customization options
     // createBarLines(timeSigMap, bpmMap, latestMidiNote);
     // createPianoRoll();
     // Create BPM Text that updates on BPM change
-	// ...
+    // ...
 
     if (!midiWndw.pb.isCanceled) {
         for (var i = 0; i < parsedMidiFiles.length; i++) {
@@ -1518,7 +1541,8 @@ function createVisualizer() {
     }
 
     midiWndw.pb.stop();
-    midiWndw.pb.updateCurrent("All done! Took " + midiWndw.pb.deltaTime + " seconds to process.", 100);
+
+    midiWndw.pb.updateCurrent("All done! It took " + Math.floor(midiWndw.pb.deltaTime / 60) + "m" + midiWndw.pb.deltaTime % 60 + "s to process.", 100);
 }
 
 // TODO: Rework the UI to be more useful
