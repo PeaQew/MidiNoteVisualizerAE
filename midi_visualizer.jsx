@@ -1079,7 +1079,7 @@ function createBpmMap(midiFile) {
         if (midiWndw.pb.isCanceled) {
             break;
         }
-        midiWndw.pb.updateCurrent("Progress: " + Math.floor(i / midiFile.tempoMap.length * 100) + "% (" + Math.floor(second / 60) + "m" + Math.floor(second) % 60 + "s: " + bpmMap[bpmMap.length - 1].bpm + "BPM", i / midiFile.tempoMap.length * 100);
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor(i / midiFile.tempoMap.length * 100) + "% (" + Math.floor(second / 60) + "m" + Math.floor(second) % 60 + "s: " + bpmMap[bpmMap.length - 1].bpm + "BPM)", i / midiFile.tempoMap.length * 100);
     }
     return bpmMap;
 }

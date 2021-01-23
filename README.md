@@ -31,10 +31,14 @@ The script includes a MIDI File Reader made by David Van Brink, which you can fi
 To install this script, move the script file (ending with .jsx) to the following locations:
 
 **Windows:**
-`C:\Program Files\Adobe\Adobe After Effects *(version)*\Support Files\Scripts\ScriptUI Panels`
+`C:\Program Files\Adobe\Adobe After Effects *(version)*\Support Files\Scripts`
 
 **macOS:**
-`/Applications/Adobe After Effects *(version)*/Scripts/ScriptUI Panels`
+`/Applications/Adobe After Effects *(version)*/Scripts`
+
+Or go to `File -> Scripts -> Install Script File...`, locate the file and restart.
+
+The script will then show up under `File -> Scripts -> midi_visualizer.jsx`
 
 To start the script inside of After Effects, go to `Window -> midi_visualizer.jsx` (at the bottom) and the window will pop up.
 
