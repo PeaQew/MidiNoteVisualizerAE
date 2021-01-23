@@ -1,0 +1,22 @@
+<configuration>
+  <settings>
+    <noteHitXOffset>128</noteHitXOffset>
+    <noteYOffset>0</noteYOffset>
+    <pitchBottomThreshold>21</pitchBottomThreshold>
+    <pitchTopThreshold>108</pitchTopThreshold>
+    <whiteNoteSize>10</whiteNoteSize>
+    <blackNoteSize>6</blackNoteSize>
+    <darkenBlackNotes>true</darkenBlackNotes>
+    <darkenAmount>20</darkenAmount>
+    <speedPerSecond>192</speedPerSecond>
+    <bpmBasedSpeed>true</bpmBasedSpeed>
+    <bpmSourceIndex>0</bpmSourceIndex>
+    <timeSigSourceIndex>0</timeSigSourceIndex>
+    <fadeOutDuration>2</fadeOutDuration>
+    <fadeOutTime>0.5</fadeOutTime>
+    <bpmChangeThreshold>0.5</bpmChangeThreshold>
+    <dropShadowBlurSize>16</dropShadowBlurSize>
+    <trailingDuration>2.5</trailingDuration>
+  </settings>
+  <filePath>C:\Users\PeaQ\source\repos\MidiVisualizer\pq_midi_settings.xml</filePath>
+</configuration>
