@@ -25,6 +25,8 @@ Initially created for personal use, but I decided to make it user-friendly enoug
 
 **Grab the latest release [here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
 
+The script includes a MIDI File Reader made by David Van Brink, which you can find [here](http://omino.com/pixelblog/2011/12/26/ae-hello-again-midi/)
+
 ## How To Install
 To install this script, move the script file (ending with .jsx) to the following locations:
 
