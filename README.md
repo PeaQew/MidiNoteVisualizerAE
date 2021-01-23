@@ -40,8 +40,6 @@ Or go to `File -> Scripts -> Install Script File...`, locate the file and restar
 
 The script will then show up under `File -> Scripts -> midi_visualizer.jsx`
 
-To start the script inside of After Effects, go to `Window -> midi_visualizer.jsx` (at the bottom) and the window will pop up.
-
 ## Usage
 - First, select a folder containing the MIDI files that you want to process.
 - Once you've chosen your folder, all found files will be listed.
