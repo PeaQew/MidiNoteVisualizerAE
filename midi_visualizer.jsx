@@ -2,18 +2,14 @@
 
 /*
 > author: Sammy Kraus (PeaQew) <peaqew@gmail.com>
-> first created: 13.01.2021
-> version: 0.8 (23.01.2021)
+> first created: 2021-01-13
+> version: 0.9.0 (2021-01-25)
 > description:
 	* This ExtendScript tool creates a piano roll-style MIDI visualizer inside of Adobe After Effects.
 
 	* Initially created for personal use but built around the SciptUI module to make it more user-friendly and somewhat customizable.
 
 	* This script includes the OMINO MIDI FILE READER by omino, with light modifications (see below).
-
-> changelog:
-	* nothing yet!
-/*
 
 /* (Original comments by omino)
 
@@ -493,7 +489,7 @@ function addMidiFileMethods(m) {
 
 function ProgressBar(parentPanel) {
     var pbObj = new Object();
-    pbObj.container = parentPanel.add("Group");;
+    pbObj.container = parentPanel.add("group");;
 
     pbObj.isCanceled = false;
 
@@ -501,18 +497,18 @@ function ProgressBar(parentPanel) {
     pbObj.container.orientation = "column";
     pbObj.container.alignChildren = "left";
 
-    pbObj.progressGroup = pbObj.container.add("Group");
+    pbObj.progressGroup = pbObj.container.add("group");
     pbObj.progressGroup.orientation = "column";
     pbObj.progressGroup.alignChildren = "left";
     pbObj.progressGroup.visible = false;
 
-    pbObj.totalProgressText = pbObj.progressGroup.add("StaticText", [0, 0, 512, 16]);
-    pbObj.totalProgressBar = pbObj.progressGroup.add("ProgressBar");
+    pbObj.totalProgressText = pbObj.progressGroup.add("statictext", [0, 0, 512, 16]);
+    pbObj.totalProgressBar = pbObj.progressGroup.add("progressbar");
 
-    pbObj.currentProgressText = pbObj.progressGroup.add("StaticText", [0, 0, 512, 16]);
-    pbObj.currentProgressBar = pbObj.progressGroup.add("ProgressBar");
+    pbObj.currentProgressText = pbObj.progressGroup.add("statictext", [0, 0, 512, 16]);
+    pbObj.currentProgressBar = pbObj.progressGroup.add("progressbar");
 
-    pbObj.createCancelBtn = pbObj.container.add("Button", undefined, "Create");
+    pbObj.createCancelBtn = pbObj.container.add("button", undefined, "Create");
     pbObj.createCancelBtn.onClick = createVisualizer;
 
     pbObj.start = function() {
@@ -552,65 +548,125 @@ function ProgressBar(parentPanel) {
 function showSettingsWindow() {
     var settingsWndw = new Window("dialog", "Visualizer Settings");
     settingsWndw.orientation = "column";
-    settingsWndw.add("StaticText", undefined, "Hover over the label to see additional information.\nOnce you are done, click the x button to close the window and the settings will be saved for this session.");
+    settingsWndw.add("statictext", undefined, "Hover over the label to see additional information.");
 
-    var container = settingsWndw.add("Panel");
-    container.orientation = "row";
+    var tabbedPanel = settingsWndw.add("tabbedpanel");
+    tabbedPanel.preferredSize = [512, 512];
 
-    var labelGroup = container.add("Group");
-    labelGroup.orientation = "column";
-    labelGroup.alignChildren = "left";
-    labelGroup.alignment = "top";
-    labelGroup.spacing = 8;
+    var tabGeneral = tabbedPanel.add("tab", undefined, "General");
 
-    var settingsGroup = container.add("Group");
-    settingsGroup.orientation = "column";
-    settingsGroup.alignChildren = "left";
-    settingsGroup.alignment = "top";
-    settingsGroup.spacing = 8;
+    var tabNotes = tabbedPanel.add("tab", undefined, "Notes");
+    tabNotes.orientation = "row";
 
-    function createLabel(text, tooltip) {
-        var label = labelGroup.add("StaticText", undefined, text);
+    tabNotes.left = tabNotes.add("group");
+    tabNotes.left.orientation = "column";
+    tabNotes.left.alignment = "top";
+    tabNotes.left.alignChildren = "top";
+
+    tabNotes.right = tabNotes.add("group");
+    tabNotes.right.orientation = "column";
+    tabNotes.right.alignment = "top";
+    tabNotes.right.alignChildren = "top";
+
+    var tabAdvanced = tabbedPanel.add("tab", undefined, "Advanced");
+
+    function addCategoryToTab(tab, name) {
+        category = tab.add("panel", undefined, name);
+        category.alignment = "left";
+        category.orientation = "row";
+
+        category.labels = category.add("group", undefined, "labels");
+        category.labels.orientation = "column";
+        category.labels.alignChildren = "right";
+        category.labels.spacing = 8;
+
+        category.controls = category.add("group", undefined, "controls");
+        category.controls.preferredSize.width = 128;
+        category.controls.orientation = "column";
+        category.controls.alignChildren = "left";
+        category.controls.spacing = 8;
+
+        return category;
+    }
+
+    var catGeneralComp = addCategoryToTab(tabGeneral, "Composition");
+    var catNotePosSize = addCategoryToTab(tabNotes.left, "Position");
+    var catNoteFxAnim = addCategoryToTab(tabNotes.right, "FX & Animation");
+    var catAdvSettings = addCategoryToTab(tabAdvanced, "Settings");
+    var catAdvExtra = addCategoryToTab(tabAdvanced, "Extra");
+
+    catAdvExtra.labels.add("button", undefined, "Revert to Factory Default").onClick = function() {
+        if (Window.confirm("Do you wish to revert your settings back to the factory default? This will not actually touch the settings file.")) {
+            midiCustomSettings.revertToDefaultValues();
+			settingsWndw.close();
+        }
+    }
+
+    function createLabel(container, text, tooltip) {
+        var label = container.add("statictext", undefined, text);
         label.preferredSize.height = 24;
         label.helpTip = tooltip;
     }
 
-    createLabel("Note X Offset",
+    createLabel(catGeneralComp.labels, "Scoller Framerate",
+        "Framerate of the scrolling compositions.");
+    createLabel(catGeneralComp.labels, "Note Framerate",
+        "Framerate of the compositions containing the notes. Only really affects animations and effects that run on the notes (shape layers) themselves.");
+    createLabel(catNotePosSize.labels, "Note X Offset",
         "Pixel offset in the X axis for the note activation, starting from the left.");
-    createLabel("Note Y Offset",
+    createLabel(catNotePosSize.labels, "Note Y Offset",
         "Pixel offset in the Y axis for the notes, starting from the bottom.");
-    createLabel("Pitch Bottom Threshold",
+    createLabel(catNotePosSize.labels, "Pitch Bottom Threshold",
         "Sets the floor for the lowest MIDI note pitch. 21 is A0.");
-    createLabel("Pitch Top Threshold",
+    createLabel(catNotePosSize.labels, "Pitch Top Threshold",
         "Sets the ceiling for the highest MIDI note pitch. 127 is G9, 108 is C8.");
-    createLabel("White Note Size",
+
+    createLabel(catNotePosSize.labels, "White Note Size",
         "Size of white notes (non-sharpened).");
-    createLabel("Black Note Size",
+    createLabel(catNotePosSize.labels, "Black Note Size",
         "Size of black notes (sharpened).");
-    createLabel("Darken Black Notes",
-        "Sets a darkening tint on the sharpened notes.");
-    createLabel("Darken Amount",
-        "The amount of darkening applied to sharpened notes.");
-    createLabel("Speed Per Second",
+
+    createLabel(catNoteFxAnim.labels, "Note Velocity",
         "Speed of notes in pixels per second");
-    createLabel("BPM Based Speed",
+    createLabel(catNoteFxAnim.labels, "BPM Based Speed",
         "BPM affects note scrolling speed. A multiplier is calculated based on 120BPM.\n\nEx: 180BPM would be a 1.5x multiplier.");
-    createLabel("BPM Source Index",
-        "The index of the MIDI file to take the tempo map from.\nIf the index is out of range, 0 or the last index will be used instead.\n\nNote: 0 Is the first MIDI file.");
-    createLabel("Time Signature Source Index",
-        "The index of the MIDI file to take the time signature from.\nIf the index is out of range, 0 or the last index will be used instead.\n\nNote: 0 Is the first MIDI file.");
-    createLabel("Fade Out Duration",
+    createLabel(catNoteFxAnim.labels, "Fade Out Duration",
         "Threshold for the duration a note needs to have to set the opacity to 0% over its duration.\nEx: If set to 2 seconds, a note with a duration of 1 second will animate its opacity to 50% over its duration until \'Fade Out Time\' gets activated.");
-    createLabel("Fade Out Time",
+    createLabel(catNoteFxAnim.labels, "Fade Out Time",
         "The time it takes for the note to fade out once it finished playing.");
-    createLabel("Trailing Duration",
-        "Additional amount of time to scroll after the last note (for each MIDI) stopped playing.");
-    createLabel("BPM Change Threshold",
-        "The difference in BPM for a change to be registered.\n\nEx: A threshold of 1 means that a keyframe (for scrolling etc.) will be added every time the BPM changes by 1.\nNote that if you set this number too low, After Effects may not be able to handle this.");
-    createLabel("DropShadow Blur Size",
+    createLabel(catNoteFxAnim.labels, "Darken Black Notes",
+        "Sets a darkening tint on the sharpened notes.");
+    createLabel(catNoteFxAnim.labels, "Darken Amount",
+        "The amount of darkening applied to sharpened notes.");
+    createLabel(catNoteFxAnim.labels, "DropShadow Blur Size",
         "The amount of blur added to the DropShadow effect of notes. Set to 0 to disable.");
 
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.noteHitXOffset)
+    createLabel(catAdvSettings.labels, "BPM Source Index",
+        "The index of the MIDI file to take the tempo map from.\nIf the index is out of range, 0 or the last index will be used instead.\n\nNote: 0 Is the first MIDI file.");
+    createLabel(catAdvSettings.labels, "Time Signature Source Index",
+        "The index of the MIDI file to take the time signature from.\nIf the index is out of range, 0 or the last index will be used instead.\n\nNote: 0 Is the first MIDI file.");
+    createLabel(catAdvSettings.labels, "Trailing Duration",
+        "Additional amount of time to scroll after the last note (for each MIDI) stopped playing.");
+    createLabel(catAdvSettings.labels, "BPM Change Threshold",
+        "The difference in BPM for a change to be registered.\n\nEx: A threshold of 1 means that a keyframe (for scrolling etc.) will be added every time the BPM changes by 1.\nNote that if you set this number too low, After Effects may not be able to handle this.");
+
+    catGeneralComp.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.scrollCompFramerate)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.scrollCompFramerate;
+            else {
+                midiCustomSettings.scrollCompFramerate = parseInt(this.text, 10);
+            }
+        };
+    catGeneralComp.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.noteCompFramerate)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.noteCompFramerate;
+            else {
+                midiCustomSettings.noteCompFramerate = parseInt(this.text, 10);
+            }
+        };
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.noteHitXOffset)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.noteHitXOffset;
@@ -618,7 +674,7 @@ function showSettingsWindow() {
                 midiCustomSettings.noteHitXOffset = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.noteYOffset)
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.noteYOffset)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.noteYOffset;
@@ -626,7 +682,7 @@ function showSettingsWindow() {
                 midiCustomSettings.noteYOffset = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.pitchBottomThreshold)
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pitchBottomThreshold)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.pitchBottomThreshold;
@@ -634,7 +690,7 @@ function showSettingsWindow() {
                 midiCustomSettings.pitchBottomThreshold = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.pitchTopThreshold)
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pitchTopThreshold)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.pitchTopThreshold;
@@ -642,7 +698,7 @@ function showSettingsWindow() {
                 midiCustomSettings.pitchTopThreshold = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.whiteNoteSize)
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.whiteNoteSize)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.whiteNoteSize;
@@ -650,7 +706,7 @@ function showSettingsWindow() {
                 midiCustomSettings.whiteNoteSize = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.blackNoteSize)
+    catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.blackNoteSize)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.blackNoteSize;
@@ -658,51 +714,21 @@ function showSettingsWindow() {
                 midiCustomSettings.blackNoteSize = parseInt(this.text, 10);
             }
         };
-    var checkBox = settingsGroup.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.darkenBlackNotes)
-    checkBox.value = midiCustomSettings.darkenBlackNotes;
-    checkBox.onClick = function() {
-        midiCustomSettings.darkenBlackNotes = this.value;
-        this.text = midiCustomSettings.darkenBlackNotes;
-    };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.darkenAmount)
+    catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.velocityPerSecond)
         .onChanging = function() {
             if (isNaN(this.text))
-                this.text = midiCustomSettings.darkenAmount;
+                this.text = midiCustomSettings.velocityPerSecond;
             else {
-                midiCustomSettings.darkenAmount = parseInt(this.text, 10);
+                midiCustomSettings.velocityPerSecond = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.speedPerSecond)
-        .onChanging = function() {
-            if (isNaN(this.text))
-                this.text = midiCustomSettings.speedPerSecond;
-            else {
-                midiCustomSettings.speedPerSecond = parseInt(this.text, 10);
-            }
-        };
-    var checkBox = settingsGroup.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.bpmBasedSpeed)
+    var checkBox = catNoteFxAnim.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.bpmBasedSpeed)
     checkBox.value = midiCustomSettings.bpmBasedSpeed;
     checkBox.onClick = function() {
         midiCustomSettings.bpmBasedSpeed = this.value;
         this.text = midiCustomSettings.bpmBasedSpeed;
     };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.bpmSourceIndex)
-        .onChanging = function() {
-            if (isNaN(this.text))
-                this.text = midiCustomSettings.bpmSourceIndex;
-            else {
-                midiCustomSettings.bpmSourceIndex = parseInt(this.text, 10);
-            }
-        };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.timeSigSourceIndex)
-        .onChanging = function() {
-            if (isNaN(this.text))
-                this.text = midiCustomSettings.timeSigSourceIndex;
-            else {
-                midiCustomSettings.timeSigSourceIndex = parseInt(this.text, 10);
-            }
-        };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.fadeOutDuration)
+    catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.fadeOutDuration)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.fadeOutDuration;
@@ -710,7 +736,7 @@ function showSettingsWindow() {
                 midiCustomSettings.fadeOutDuration = parseFloat(this.text);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.fadeOutTime)
+    catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.fadeOutTime)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.fadeOutTime;
@@ -718,23 +744,21 @@ function showSettingsWindow() {
                 midiCustomSettings.fadeOutTime = parseFloat(this.text);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.trailingDuration)
+    var checkBox = catNoteFxAnim.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.darkenBlackNotes)
+    checkBox.value = midiCustomSettings.darkenBlackNotes;
+    checkBox.onClick = function() {
+        midiCustomSettings.darkenBlackNotes = this.value;
+        this.text = midiCustomSettings.darkenBlackNotes;
+    };
+    catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.darkenAmount)
         .onChanging = function() {
             if (isNaN(this.text))
-                this.text = midiCustomSettings.trailingDuration;
+                this.text = midiCustomSettings.darkenAmount;
             else {
-                midiCustomSettings.trailingDuration = parseFloat(this.text);
+                midiCustomSettings.darkenAmount = parseInt(this.text, 10);
             }
         };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.bpmChangeThreshold)
-        .onChanging = function() {
-            if (isNaN(this.text))
-                this.text = midiCustomSettings.bpmChangeThreshold;
-            else {
-                midiCustomSettings.bpmChangeThreshold = parseFloat(this.text);
-            }
-        };
-    settingsGroup.add("EditText", [0, 0, 128, 24], midiCustomSettings.dropShadowBlurSize)
+    catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.dropShadowBlurSize)
         .onChanging = function() {
             if (isNaN(this.text))
                 this.text = midiCustomSettings.dropShadowBlurSize;
@@ -742,19 +766,55 @@ function showSettingsWindow() {
                 midiCustomSettings.dropShadowBlurSize = parseInt(this.text, 10);
             }
         };
+    catAdvSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.bpmSourceIndex)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.bpmSourceIndex;
+            else {
+                midiCustomSettings.bpmSourceIndex = parseInt(this.text, 10);
+            }
+        };
+    catAdvSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.timeSigSourceIndex)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.timeSigSourceIndex;
+            else {
+                midiCustomSettings.timeSigSourceIndex = parseInt(this.text, 10);
+            }
+        };
+    catAdvSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.trailingDuration)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.trailingDuration;
+            else {
+                midiCustomSettings.trailingDuration = parseFloat(this.text);
+            }
+        };
+    catAdvSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.bpmChangeThreshold)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.bpmChangeThreshold;
+            else {
+                midiCustomSettings.bpmChangeThreshold = parseFloat(this.text);
+            }
+        };
 
-    settingsWndw.add("Button", undefined, "Save as Default").onClick = function() {
+    settingsWndw.bottom = settingsWndw.add("group");
+    settingsWndw.bottom.orientation = "row";
+    settingsWndw.bottom.alignment = "left";
+
+    settingsWndw.bottom.add("button", undefined, "Save as Default").onClick = function() {
         if (midiCustomSettings.saveToXml(xmlSettingsObj)) {
             Window.alert("Settings saved to " + "\'" + (new File($.fileName)).parent.fsName + "/pq_midi_settings.xml\'.");
         }
     }
-    settingsWndw.add("Button", undefined, "Revert to Default").onClick = function() {
+    settingsWndw.bottom.add("button", undefined, "Revert to Default").onClick = function() {
         if (Window.confirm("Do you wish to revert your settings back to the state of the settings file?")) {
             midiCustomSettings.readFromXml(xmlSettingsObj);
             settingsWndw.close();
         }
     }
-    settingsWndw.add("Button", undefined, "Show Project Page").onClick = function() {
+    settingsWndw.bottom.add("button", undefined, "Show Project Page").onClick = function() {
         if (Window.confirm("This will open your browser and redirect you to the Github page.\nProceed?")) {
             if (hasWriteAndNetworkAccess()) {
                 var userOSVer = getOS();
@@ -853,7 +913,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
                 var deltaSeconds = newSecond - currentSecond;
 
                 var speedMultiplier = currentBpm / 120.0;
-                var deltaPosition = (deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier));
+                var deltaPosition = (deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier));
 
                 currentPosition += deltaPosition;
                 currentSecond = newSecond;
@@ -864,7 +924,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
                 var deltaSeconds = newSecond - currentSecond;
 
                 var speedMultiplier = currentBpm / 120.0;
-                var deltaPosition = deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier);
+                var deltaPosition = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentPosition += deltaPosition;
                 currentSecond = newSecond;
@@ -879,7 +939,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
                 var deltaSeconds = newSecond - currentSecond;
 
                 var speedMultiplier = currentBpm / 120.0;
-                var deltaSize = deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier);
+                var deltaSize = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentWidth += deltaSize;
                 currentSecond = newSecond;
@@ -891,7 +951,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
                 var deltaSeconds = newSecond - currentSecond;
 
                 var speedMultiplier = currentBpm / 120.0;
-                var deltaSize = deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier);
+                var deltaSize = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentWidth += deltaSize;
                 currentSecond = newSecond;
@@ -899,8 +959,8 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
         }
 
     } else {
-        currentPosition = startTime * midiCustomSettings.speedPerSecond;
-        currentWidth = noteDur * midiCustomSettings.speedPerSecond;
+        currentPosition = startTime * midiCustomSettings.velocityPerSecond;
+        currentWidth = noteDur * midiCustomSettings.velocityPerSecond;
     }
 
     return [midiCustomSettings.noteHitXOffset + currentPosition, currentWidth];
@@ -1111,7 +1171,7 @@ function addScrollerKeyframes(comp, bpmMap, scroller, latestMidiNote) {
             var deltaSeconds = newSecond - currentSecond;
 
             var speedMultiplier = currentBPM / 120.0;
-            var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier)) * -1);
+            var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier)) * -1);
 
             scroller.property("transform").property("position").setValueAtTime(newSecond, [newPosition, comp.height / 2]);
 
@@ -1123,7 +1183,7 @@ function addScrollerKeyframes(comp, bpmMap, scroller, latestMidiNote) {
             var deltaSeconds = newSecond - currentSecond;
 
             var speedMultiplier = currentBPM / 120.0;
-            var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.speedPerSecond * speedMultiplier)) * -1);
+            var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier)) * -1);
             scroller.property("transform").property("position").setValueAtTime(newSecond, [newPosition, comp.height / 2]);
 
             currentSecond = newSecond;
@@ -1148,31 +1208,43 @@ function PresetColor(name, color) {
     this.color = [color[0] / 255, color[1] / 255, color[2] / 255, 1];
 }
 
+// TODO: Update default settings
 function MidiCustomSettings() {
-    this.noteHitXOffset = 128; // X offset for the note activation, starting from the left
+    // General //
+    // Composition
+    this.scrollCompFramerate = 60;
+    this.noteCompFramerate = 30;
+
+    // Notes //
+    // Position
+    this.noteHitXOffset = 192; // X offset for the note activation, starting from the left
     this.noteYOffset = 0; // Y offset for notes, starting from the bottom
 
     this.pitchBottomThreshold = 21; // Offset for determining Y position. 21 is A0
     this.pitchTopThreshold = 108; // Offset for determining Y position. 127 is G9, 108 is C8
-
     this.whiteNoteSize = 10; // Size of the white notes (non-sharpened)
-    this.blackNoteSize = 6; // Size of the black notes (sharpened)
+    this.blackNoteSize = 8; // Size of the black notes (sharpened)
+
+    // Effects & Animation
+    this.velocityPerSecond = 192; // Speed of the notes in pixels per second
+    this.bpmBasedSpeed = true; // Is the speed affected by BPM? (Based on 120BPM)
+
+    this.fadeOutDuration = 2.5; // Threshold for the duration a note needs to have to set the opacity to 0 over its duration
+    this.fadeOutTime = 1; // The time it takes to fade out once a note finished playing
+
     this.darkenBlackNotes = true // Should black notes be darkened?
     this.darkenAmount = 20; // The amount of darkening
 
-    this.speedPerSecond = 192; // Speed of the notes in pixels per second
-    this.bpmBasedSpeed = true; // Is the speed affected by BPM? (Based on 120BPM)
+    this.dropShadowBlurSize = 16; // The amount of softness applied to the dropShadow effect of the notes.
+    // Advanced
     this.bpmSourceIndex = 0; // The index of the MIDI file to take the tempo map from
     this.timeSigSourceIndex = 0; // The index of the MIDI file to take the time sig from
 
-    this.fadeOutDuration = 2.0; // Threshold for the duration a note needs to have to set the opacity to 0 over its duration
-    this.fadeOutTime = 0.5; // The time it takes to fade out once a note finished playing
     this.trailingDuration = 2.5; // Additional time it scrolls after the last note was played.
 
-    this.bpmChangeThreshold = 0.5; // Depending on the tempo mapping, this needs to be increased.
+    this.bpmChangeThreshold = 1; // Depending on the tempo mapping, this needs to be increased.
     //E.g. with a threshold of 1, a change in BPM will only register if there is at least a 1 second difference.
 
-    this.dropShadowBlurSize = 16; // The amount of softness applied to the dropShadow effect of the notes.
 
     // These are material colors at 800 weight
     // TODO: Read and write these to the settings file
@@ -1195,23 +1267,30 @@ function MidiCustomSettings() {
 
     this.readFromXml = function(xmlObj) {
         try {
+            this.scrollCompFramerate = parseInt(xmlObj.settings.scrollCompFramerate, 10);
+            this.noteCompFramerate = parseInt(xmlObj.settings.noteCompFramerate, 10);
             this.noteHitXOffset = parseInt(xmlObj.settings.noteHitXOffset, 10);
             this.noteYOffset = parseInt(xmlObj.settings.noteYOffset, 10);
             this.pitchBottomThreshold = parseInt(xmlObj.settings.pitchBottomThreshold, 10);
             this.pitchTopThreshold = parseInt(xmlObj.settings.pitchTopThreshold, 10);
+
             this.whiteNoteSize = parseInt(xmlObj.settings.whiteNoteSize, 10);
             this.blackNoteSize = parseInt(xmlObj.settings.blackNoteSize, 10);
-            this.darkenBlackNotes = xmlObj.settings.darkenBlackNotes == "true" ? true : false;
-            this.darkenAmount = parseInt(xmlObj.settings.darkenAmount, 10);
-            this.speedPerSecond = parseInt(xmlObj.settings.speedPerSecond, 10);
+
+            this.velocityPerSecond = parseInt(xmlObj.settings.velocityPerSecond, 10);
             this.bpmBasedSpeed = xmlObj.settings.bpmBasedSpeed == "true" ? true : false;
-            this.bpmSourceIndex = parseInt(xmlObj.settings.bpmSourceIndex, 10);
-            this.timeSigSourceIndex = parseInt(xmlObj.settings.timeSigSourceIndex, 10);
             this.fadeOutDuration = parseFloat(xmlObj.settings.fadeOutDuration);
             this.fadeOutTime = parseFloat(xmlObj.settings.fadeOutTime);
-            this.bpmChangeThreshold = parseFloat(xmlObj.settings.bpmChangeThreshold);
+
+            this.darkenBlackNotes = xmlObj.settings.darkenBlackNotes == "true" ? true : false;
+            this.darkenAmount = parseInt(xmlObj.settings.darkenAmount, 10);
+
             this.dropShadowBlurSize = parseInt(xmlObj.settings.dropShadowBlurSize, 10);
+
+            this.bpmSourceIndex = parseInt(xmlObj.settings.bpmSourceIndex, 10);
+            this.timeSigSourceIndex = parseInt(xmlObj.settings.timeSigSourceIndex, 10);
             this.trailingDuration = parseFloat(xmlObj.settings.trailingDuration);
+            this.bpmChangeThreshold = parseFloat(xmlObj.settings.bpmChangeThreshold);
         } catch (error) {
             Window.alert("An error occured while reading the settings file.\n\nMessage: " + error.message + "\n\nDefault settings will be used.")
             this.revertToDefaultValues();
@@ -1225,23 +1304,29 @@ function MidiCustomSettings() {
             xmlObj = new XML("<configuration><settings></settings></configuration>");
             xmlObj.filePath = getCurrentWorkingDirectory() + "\\pq_midi_settings.xml"
         }
+        xmlObj.settings.scrollCompFramerate = this.scrollCompFramerate;
+        xmlObj.settings.noteCompFramerate = this.noteCompFramerate;
+
         xmlObj.settings.noteHitXOffset = this.noteHitXOffset;
         xmlObj.settings.noteYOffset = this.noteYOffset;
         xmlObj.settings.pitchBottomThreshold = this.pitchBottomThreshold;
         xmlObj.settings.pitchTopThreshold = this.pitchTopThreshold;
         xmlObj.settings.whiteNoteSize = this.whiteNoteSize;
         xmlObj.settings.blackNoteSize = this.blackNoteSize;
-        xmlObj.settings.darkenBlackNotes = this.darkenBlackNotes;
-        xmlObj.settings.darkenAmount = this.darkenAmount;
-        xmlObj.settings.speedPerSecond = this.speedPerSecond;
+
+        xmlObj.settings.velocityPerSecond = this.velocityPerSecond;
         xmlObj.settings.bpmBasedSpeed = this.bpmBasedSpeed;
-        xmlObj.settings.bpmSourceIndex = this.bpmSourceIndex;
-        xmlObj.settings.timeSigSourceIndex = this.timeSigSourceIndex;
         xmlObj.settings.fadeOutDuration = this.fadeOutDuration;
         xmlObj.settings.fadeOutTime = this.fadeOutTime;
-        xmlObj.settings.bpmChangeThreshold = this.bpmChangeThreshold;
+
+        xmlObj.settings.darkenBlackNotes = this.darkenBlackNotes;
+        xmlObj.settings.darkenAmount = this.darkenAmount;
         xmlObj.settings.dropShadowBlurSize = this.dropShadowBlurSize;
+
+        xmlObj.settings.bpmSourceIndex = this.bpmSourceIndex;
+        xmlObj.settings.timeSigSourceIndex = this.timeSigSourceIndex;
         xmlObj.settings.trailingDuration = this.trailingDuration;
+        xmlObj.settings.bpmChangeThreshold = this.bpmChangeThreshold;
         if (hasWriteAndNetworkAccess()) {
             try {
                 var file = new File(xmlObj.filePath);
@@ -1258,23 +1343,30 @@ function MidiCustomSettings() {
     }
 
     this.revertToDefaultValues = function() {
+        this.scrollCompFramerate = 60;
+        this.noteCompFramerate = 30;
+
         this.noteHitXOffset = 192;
         this.noteYOffset = 0;
         this.pitchBottomThreshold = 21;
         this.pitchTopThreshold = 108;
         this.whiteNoteSize = 10;
         this.blackNoteSize = 8;
-        this.darkenBlackNotes = true;
-        this.darkenAmount = 20;
-        this.speedPerSecond = 192;
+
+        this.velocityPerSecond = 192;
         this.bpmBasedSpeed = true;
-        this.bpmSourceIndex = 0;
-        this.timeSigSourceIndex = 0;
         this.fadeOutDuration = 2.5;
         this.fadeOutTime = 1;
-        this.bpmChangeThreshold = 0.5;
+
+        this.darkenBlackNotes = true;
+        this.darkenAmount = 20;
+
         this.dropShadowBlurSize = 16;
-        this.trailingDuration = 1;
+
+        this.bpmSourceIndex = 0;
+        this.timeSigSourceIndex = 0;
+        this.trailingDuration = 2.5;
+        this.bpmChangeThreshold = 1;
     }
 }
 
@@ -1298,7 +1390,7 @@ function readSettingsFile() {
         var xmlObj = new XML(xmlString);
     } catch (error) {
         Window.alert("An error occured while reading the settings file.\n\nMessage: " + error.message);
-		return false;
+        return false;
     }
     xmlObj.filePath = filePath;
     return xmlObj;
@@ -1402,7 +1494,7 @@ function createVisualizer() {
     var parsedMidiFiles = readMidiFiles();
     var latestMidiNote = getLatestMidiNote(parsedMidiFiles);
 
-    var masterComp = app.project.items.addComp("MidiMaster", 1920, 1080, 1.0, latestMidiNote, 60);
+    var masterComp = app.project.items.addComp("MidiMaster", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
     if (midiCustomSettings.bpmSourceIndex < 0)
         midiCustomSettings.bpmSourceIndex = 0;
     if (midiCustomSettings.bpmSourceIndex + 1 > parsedMidiFiles.length)
@@ -1426,7 +1518,7 @@ function createVisualizer() {
         for (var i = 0; i < parsedMidiFiles.length; i++) {
             latestMidiNote = getLatestMidiNote(parsedMidiFiles[i]);
 
-            var scrollerComp = app.project.items.addComp("_" + midiConfigs[i].name + " Scroller", 1920, 1080, 1.0, latestMidiNote, 60);
+            var scrollerComp = app.project.items.addComp("_" + midiConfigs[i].name + " Scroller", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
             var scroller = scrollerComp.layers.addNull();
             scroller.name = "Scroller";
             scroller.property("transform").property("position").setValueAtTime(0, [0, scrollerComp.height / 2]);
@@ -1436,11 +1528,11 @@ function createVisualizer() {
             if (midiCustomSettings.bpmBasedSpeed)
                 addScrollerKeyframes(scrollerComp, bpmMap, scroller, latestMidiNote);
             else
-                scroller.property("transform").property("position").setValueAtTime(latestMidiNote, [(latestMidiNote * midiCustomSettings.speedPerSecond) * -1, scrollerComp.height / 2]);
+                scroller.property("transform").property("position").setValueAtTime(latestMidiNote, [(latestMidiNote * midiCustomSettings.velocityPerSecond) * -1, scrollerComp.height / 2]);
 
             midiWndw.pb.updateTotal("Processing " + midiConfigs[i].name + " (" + (i + 1) + "/" + parsedMidiFiles.length + ")", ((i + 1) / parsedMidiFiles.length) * 100);
 
-            var comp = app.project.items.addComp(midiConfigs[i].name + " notes", 1920, 1080, 1.0, latestMidiNote, 30);
+            var comp = app.project.items.addComp(midiConfigs[i].name + " notes", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.noteCompFramerate);
             var compLayer = scrollerComp.layers.add(comp);
             compLayer.parent = scroller;
             // This makes it so that the comps don't get cropped off
@@ -1565,11 +1657,11 @@ if (USE_MIDI_SETTINGS_FILE) {
 
 // topContainer //
 
-midiWndw.topContainer = midiWndw.add("Group");
+midiWndw.topContainer = midiWndw.add("group");
 midiWndw.topContainer.orientation = "row";
 midiWndw.topContainer.alignment = "fill";
 //midiWndw.topContainer.alignChildren = "left";
-midiWndw.topContainer.add("Button", undefined, "Select Folder").onClick = function() {
+midiWndw.topContainer.add("button", undefined, "Select Folder").onClick = function() {
     var selectedObject = Folder.selectDialog();
     if (selectedObject != null) {
         if (selectedObject instanceof Folder) {
@@ -1592,13 +1684,7 @@ midiWndw.topContainer.add("Button", undefined, "Select Folder").onClick = functi
         }
     }
 };
-midiWndw.topContainer.add("StaticText", undefined, "Select a folder with MIDI files (.mid) inside.");
-
-midiWndw.topContainer.settingsBtn = midiWndw.topContainer.add("Button", undefined, "Open Settings");
-midiWndw.topContainer.settingsBtn.onClick = function() {
-    showSettingsWindow();
-}
-midiWndw.topContainer.settingsBtn.alignment = "right";
+midiWndw.topContainer.add("statictext", undefined, "Select a folder with MIDI files (.mid) inside.");
 
 // midiContainer //
 
@@ -1618,7 +1704,7 @@ midiWndw.midiContainer.midiListBox.onChange = function onSelectionChanged() {
     handleSelectionUpdate();
 }
 
-midiWndw.midiContainer.add("StaticText", [0, 0, 496, 48], "Select a MIDI file to change its properties.", {
+midiWndw.midiContainer.add("statictext", [0, 0, 496, 48], "Select a MIDI file to change its properties.", {
     name: "selectionText",
     multiline: true
 });
@@ -1631,10 +1717,10 @@ midiWndw.midiContainer.configGroup.orientation = "column";
 midiWndw.midiContainer.configGroup.alignChildren = "left";
 midiWndw.midiContainer.configGroup.alignment = "fill";
 
-var midiNameGroup = midiWndw.midiContainer.configGroup.add("Group");
+var midiNameGroup = midiWndw.midiContainer.configGroup.add("group");
 midiNameGroup.orientation = "row";
-midiNameGroup.add("StaticText", undefined, "Comp Name");
-midiNameGroup.add("EditText", [0, 0, 256, 24], undefined, {
+midiNameGroup.add("statictext", undefined, "Comp Name");
+midiNameGroup.add("edittext", [0, 0, 256, 24], undefined, {
     name: "midiNameEditText"
 });
 midiWndw.findElement("midiNameEditText").onChanging = function onTextChanged() {
@@ -1654,7 +1740,7 @@ colorDropdownList.onChange = function() {
 midiWndw.halfSpeedCheckbox = midiWndw.midiContainer.configGroup.add("Checkbox", undefined, "Set to half speed");
 midiWndw.halfSpeedCheckbox.helpTip = "This halves the speed of all events (notes etc.). This is a temporary solution for MIDI files that somehow are at double speed.";
 
-midiWndw.midiContainer.progressGroup = midiWndw.midiContainer.add("Group");
+midiWndw.midiContainer.progressGroup = midiWndw.midiContainer.add("group");
 midiWndw.midiContainer.progressGroup.alignment = ["left", "bottom"];
 midiWndw.midiContainer.progressGroup.orientation = "column";
 midiWndw.midiContainer.progressGroup.alignChildren = "left";
@@ -1662,16 +1748,29 @@ midiWndw.midiContainer.progressGroup.alignChildren = "left";
 midiWndw.pb = ProgressBar(midiWndw.midiContainer.progressGroup);
 
 // footer //
-midiWndw.footer = midiWndw.add("Group");
+midiWndw.footer = midiWndw.add("group");
 midiWndw.footer.alignment = "fill";
 midiWndw.footer.orientation = "row";
 
+
 midiWndw.footer.margins = 0;
-var creditsText = midiWndw.footer.add("StaticText", undefined, "Tool created by PeaQew. Credits to omino for the MIDI File Reader.\nContact: peaqew@gmail.com or u/PeaQew");
+var creditsText = midiWndw.footer.add("statictext", undefined, "Tool created by PeaQew. Credits to omino for the MIDI File Reader.\nContact: peaqew@gmail.com or u/PeaQew");
 creditsText.alignment = "left";
 creditsText.preferredSize.height = 46;
-var versionText = midiWndw.footer.add("StaticText", undefined, "v0.8");
-versionText.alignment = ["right", "bottom"];
-versionText.helpTip = "Version 0.8, 23.01.2021";
+
+midiWndw.footer.rightGroup = midiWndw.footer.add("group");
+midiWndw.footer.rightGroup.alignment = ["right", "bottom"];
+midiWndw.footer.rightGroup.orientation = "column";
+
+var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v0.9.0");
+versionText.alignment = "right";
+versionText.helpTip = "Version 0.9.0, 2021-01-25";
+
+midiWndw.footer.settingsBtn = midiWndw.footer.rightGroup.add("button", undefined, "Settings");
+midiWndw.footer.settingsBtn.onClick = function() {
+    showSettingsWindow();
+}
+
+midiWndw.footer.settingsBtn.alignment = "right";
 midiWndw.center();
 midiWndw.show();
