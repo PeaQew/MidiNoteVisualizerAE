@@ -6,24 +6,28 @@
 	<b>An ExtendScript tool that creates a piano roll-style MIDI note visualizer inside of After Effects.</b>
 </p>
 
+<p align="center">
+	<img src="assets/midi_note_example.gif">
+</p>
 
 ## Contents
 - [Overview](#overview)
 - [How To Install](#how-to-install)
 - [Usage](#usage)
 - [The Workflow](#the-workflow)
+- [Piano Key Visuals](#piano-key-visuals)
 - [Future Versions](#future-versions)
 - [Settings File](#settings-file)
 - [Contact Me](#contact-me)
 
 ## Overview
-This tool reads data from MIDI files (**M**usical **I**nstrument **D**igital **I**nterface) and creates visuals that simulate a scrolling piano roll, similar to the ones seen in [DAWs](https://en.wikipedia.org/wiki/Digital_audio_workstation). To achieve this, two compositions are created for each MIDI file. One of them contains all of the shapes that represent the notes, and another is responsible for scrolling them across the screen.
+This tool reads data from MIDI files (**M**usical **I**nstrument **D**igital **I**nterface) and creates visuals that simulate a scrolling piano roll, similar to the ones seen in DAWs. To achieve this, two compositions are created for each MIDI file. One of them contains all of the shapes that represent the notes, and another is responsible for scrolling them across the screen.
 
-This, combined with [upcoming additions](#future-versions), provides an alternative to using real time MIDI visualizers or recording a video of your DAW - plus all of the features After Effects has to offer!
+This, provides an alternative to using real time MIDI visualizers or recording a video of your DAW - plus all of the features After Effects has to offer!
 
 Initially created for personal use, but I decided to make it user-friendly enough and upload it so that everyone can use it!
 
-**Grab the latest release [here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
+**[Grab the latest release here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
 
 The script includes a MIDI File Reader made by David Van Brink, which you can find [here](http://omino.com/pixelblog/2011/12/26/ae-hello-again-midi/).
 
@@ -53,9 +57,9 @@ The script will then show up under `File -> Scripts -> midi_visualizer.jsx`
 - When everything is set-up, hit `Create` and let it do its thing!
 
 ## The Workflow
-This script will produce a bunch of compositions, two for each MIDI file and one called 'MidiMaster'. The reason there are two compositions for each file is so that we can scroll all the notes (shape layers) effectively. The compositions that handle the scrolling of the notes are prefixed with an underscore, which makes them appear at the top of the list. Now, there are two general workflows you can follow:
+This script will produce a bunch of compositions, two for each MIDI file and one called "MidiMaster". The reason there are two compositions for each file is so that we can scroll all the notes (shape layers) effectively. The compositions that handle the scrolling of the notes are prefixed with an underscore, which makes them appear at the top of the list. Now, there are two general workflows you can follow:
 
-1: Put all 'scroller compositions' into a single composition... and there you go! This might be a little hard on your computer though, so this is not the workflow I recommend unless you own a strong machine.
+1: Put all "scroller compositions" into a single composition... and there you go! This might be a little hard on your computer though, so this is not the workflow I recommend unless you own a strong machine.
 
 2: My recommended approach is to render out all of the compositions first (the ones that are neatly prefixed with an underscore) and then bringing them back into After Effects. This will significantly improve performance and reliably work even on lower end machines.
 
@@ -63,16 +67,12 @@ I'm no expert on codecs, but what has worked for me is rendering them using the 
 
 From here you can put everything else you want into your video and render the final video!
 
+## Piano Key Visuals
+If you choose to create the Piano Key Visuals (as seen in the GIF above), you need to render it as a PNG image. To do that, open the `Piano Keys` comp, select the first frame and go to `Composition -> Save Frame As -> File...`. From there, make sure to select `PNG Sequence` as your format. This will render a single image, which you can put into your composition.
+
 ## Future Versions
-I currently call this version 0.8 because I have two updates planned.
-Version 0.9 will have improvements in the UI, especially in the settings window. This sets up version 1.0, which will include the following additions:
-- **Piano key visuals:** You will have the option to generate a composition (or png file, if that's possible) with a visual representation of all the piano keys (think of a literal piano but vertically).
-- **Bar lines:** A visual representation of the beats and steps of the song.
-- **Single MIDI file instrument seperation:** Currently, you don't have the option to seperate different channels (or tracks/instruments), meaning you have to export your MIDI files per instrument. In the future, you will be able to use a single MIDI file and change properties, such as color, for each seperate channel/track
-
-These changes require better UI to allow for customization.
-
 Version 1.0 is what I would call "finished", as in, I don't need it to do more than that for my personal use-case. But you can always [contact me](#contact-me) and ask for new features!
+
 
 ## Settings File
 This script will work with an XML settings file called `pq_midi_settings.xml` that is expected to be in the same location as the script. The contents of the file are loaded when the script starts up. You can save the current settings from the settings window as defaults.

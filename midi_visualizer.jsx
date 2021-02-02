@@ -3,15 +3,15 @@
 /*
 > author: Sammy Kraus (PeaQew) <peaqew@gmail.com>
 > first created: 2021-01-13
-> version: 0.9.0 (2021-01-25)
+> version: 1.0.0 (2021-02-02)
 > description:
 	* This ExtendScript tool creates a piano roll-style MIDI visualizer inside of Adobe After Effects.
 
 	* Initially created for personal use but built around the SciptUI module to make it more user-friendly and somewhat customizable.
 
-	* This script includes the OMINO MIDI FILE READER by omino, with light modifications (see below).
+	* This script includes the OMINO MIDI FILE READER by David Van Brink, with light modifications (see below).
 
-/* (Original comments by omino)
+/* (Original comments)
 
 Date: Sun Dec 25 22:58:10 PST 2011
 Author: David Van Brink
@@ -181,7 +181,7 @@ function MidiFile(filePath) {
                                 case 0x04: // instrument name
                                     channel = (currentTrack) * 16 + midiChannelPrefix;
                                     var channelO = this.findChannel(channel);
-                                    channelO.insrument = this.getVarString(chunkOffset + 1);
+                                    channelO.instrument = this.getVarString(chunkOffset + 1);
                                     break;
                                 case 0x20: // midi channel prefix
                                     midiChannelPrefix = this.getByte(chunkOffset + 2);
@@ -568,7 +568,13 @@ function showSettingsWindow() {
     tabNotes.right.alignment = "top";
     tabNotes.right.alignChildren = "top";
 
+    var tabBarLines = tabbedPanel.add("tab", undefined, "Bar Lines");
+    var tabPianoKeys = tabbedPanel.add("tab", undefined, "Piano Keys");
     var tabAdvanced = tabbedPanel.add("tab", undefined, "Advanced");
+    var tabContact = tabbedPanel.add("tab", undefined, "Contact");
+	tabContact.add("panel").add("statictext", [0 + 16, 0 + 16, 384 + 16, 512 + 16], "Need a new feature? Found a bug? Here's how you can contact me:\n\nE-Mail: peaqew@gmail.com\nDiscord: PeaQ#9827\nReddit: u/PeaQew\nTwitter: @PeaQew", {
+        multiline: true
+    }).alignment = "left";
 
     function addCategoryToTab(tab, name) {
         category = tab.add("panel", undefined, name);
@@ -590,15 +596,24 @@ function showSettingsWindow() {
     }
 
     var catGeneralComp = addCategoryToTab(tabGeneral, "Composition");
+    var catGeneralbpmText = addCategoryToTab(tabGeneral, "BPM Text");
+
     var catNotePosSize = addCategoryToTab(tabNotes.left, "Position");
     var catNoteFxAnim = addCategoryToTab(tabNotes.right, "FX & Animation");
+
+    var catbarLinesPos = addCategoryToTab(tabBarLines, "Position");
+    var catbarLinesFont = addCategoryToTab(tabBarLines, "Font");
+
+    var catPianoKeysSettings = addCategoryToTab(tabPianoKeys, "Settings");
+    var catPianoKeysFont = addCategoryToTab(tabPianoKeys, "Font");
+
     var catAdvSettings = addCategoryToTab(tabAdvanced, "Settings");
     var catAdvExtra = addCategoryToTab(tabAdvanced, "Extra");
 
     catAdvExtra.labels.add("button", undefined, "Revert to Factory Default").onClick = function() {
         if (Window.confirm("Do you wish to revert your settings back to the factory default? This will not actually touch the settings file.")) {
             midiCustomSettings.revertToDefaultValues();
-			settingsWndw.close();
+            settingsWndw.close();
         }
     }
 
@@ -606,12 +621,25 @@ function showSettingsWindow() {
         var label = container.add("statictext", undefined, text);
         label.preferredSize.height = 24;
         label.helpTip = tooltip;
+        return label;
     }
 
     createLabel(catGeneralComp.labels, "Scoller Framerate",
         "Framerate of the scrolling compositions.");
     createLabel(catGeneralComp.labels, "Note Framerate",
         "Framerate of the compositions containing the notes. Only really affects animations and effects that run on the notes (shape layers) themselves.");
+    createLabel(catGeneralComp.labels, "Comp Width",
+        "The width of all compositions.");
+    createLabel(catGeneralComp.labels, "Comp Height",
+        "The height of all compositions.");
+
+    createLabel(catGeneralbpmText.labels, "Create BPM Text",
+        "Creates a text layer that shows the current BPM of the song.");
+    createLabel(catGeneralbpmText.labels, "Font",
+        "The font of the BPM Text.");
+    createLabel(catGeneralbpmText.labels, "Font Size",
+        "The pixel size of the font.");
+
     createLabel(catNotePosSize.labels, "Note X Offset",
         "Pixel offset in the X axis for the note activation, starting from the left.");
     createLabel(catNotePosSize.labels, "Note Y Offset",
@@ -627,7 +655,7 @@ function showSettingsWindow() {
         "Size of black notes (sharpened).");
 
     createLabel(catNoteFxAnim.labels, "Note Velocity",
-        "Speed of notes in pixels per second");
+        "Speed of notes in pixels per second.");
     createLabel(catNoteFxAnim.labels, "BPM Based Speed",
         "BPM affects note scrolling speed. A multiplier is calculated based on 120BPM.\n\nEx: 180BPM would be a 1.5x multiplier.");
     createLabel(catNoteFxAnim.labels, "Fade Out Duration",
@@ -640,6 +668,34 @@ function showSettingsWindow() {
         "The amount of darkening applied to sharpened notes.");
     createLabel(catNoteFxAnim.labels, "DropShadow Blur Size",
         "The amount of blur added to the DropShadow effect of notes. Set to 0 to disable.");
+
+    createLabel(catbarLinesPos.labels, "Y Position",
+        "The Y position at which all lines start.");
+    createLabel(catbarLinesPos.labels, "Bar Length",
+        "The length of the line of the first beat of a bar.");
+    createLabel(catbarLinesPos.labels, "Beat Length",
+        "The length of beats between the bars.");
+    createLabel(catbarLinesFont.labels, "Font",
+        "The PostScript name of the font.");
+    createLabel(catbarLinesFont.labels, "Font Size",
+        "The pixel size of the font.");
+
+    createLabel(catPianoKeysSettings.labels, "Create Indicator",
+        "Creates a line at the position where notes start.");
+    createLabel(catPianoKeysSettings.labels, "Create Keys",
+        "Creates lines that represent the piano keys. Text layers are created at C keys");
+    createLabel(catPianoKeysSettings.labels, "Indicator Width",
+        "The width of the indicator");
+    createLabel(catPianoKeysSettings.labels, "Key Gap Size",
+        "The gap between the keys and the indicator.");
+    createLabel(catPianoKeysSettings.labels, "White Key Width",
+        "The width of the white keys.");
+    createLabel(catPianoKeysSettings.labels, "Black Key Width",
+        "The width of the black keys");
+    createLabel(catPianoKeysFont.labels, "Font",
+        "The PostScript name of the font.");
+    createLabel(catPianoKeysFont.labels, "Font Size",
+        "The pixel size of the font.");
 
     createLabel(catAdvSettings.labels, "BPM Source Index",
         "The index of the MIDI file to take the tempo map from.\nIf the index is out of range, 0 or the last index will be used instead.\n\nNote: 0 Is the first MIDI file.");
@@ -664,6 +720,41 @@ function showSettingsWindow() {
                 this.text = midiCustomSettings.noteCompFramerate;
             else {
                 midiCustomSettings.noteCompFramerate = parseInt(this.text, 10);
+            }
+        };
+    catGeneralComp.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.resolutionWidth)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.resolutionWidth;
+            else {
+                midiCustomSettings.resolutionWidth = parseInt(this.text, 10);
+            }
+        };
+    catGeneralComp.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.resolutionHeight)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.resolutionHeight;
+            else {
+                midiCustomSettings.resolutionHeight = parseInt(this.text, 10);
+            }
+        };
+    var checkBox = catGeneralbpmText.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.createBpmText)
+    checkBox.value = midiCustomSettings.createBpmText;
+    checkBox.text = midiCustomSettings.createBpmText == true ? "On" : "Off";
+    checkBox.onClick = function() {
+        midiCustomSettings.createBpmText = this.value;
+        this.text = midiCustomSettings.createBpmText == true ? "On" : "Off";
+    };
+    catGeneralbpmText.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.bpmTextFont)
+        .onChanging = function() {
+            midiCustomSettings.bpmTextFont = this.text;
+        };
+    catGeneralbpmText.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.bpmTextFontSize)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.bpmTextFontSize;
+            else {
+                midiCustomSettings.bpmTextFontSize = parseInt(this.text, 10);
             }
         };
     catNotePosSize.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.noteHitXOffset)
@@ -724,9 +815,10 @@ function showSettingsWindow() {
         };
     var checkBox = catNoteFxAnim.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.bpmBasedSpeed)
     checkBox.value = midiCustomSettings.bpmBasedSpeed;
+    checkBox.text = midiCustomSettings.bpmBasedSpeed == true ? "On" : "Off";
     checkBox.onClick = function() {
         midiCustomSettings.bpmBasedSpeed = this.value;
-        this.text = midiCustomSettings.bpmBasedSpeed;
+        this.text = midiCustomSettings.bpmBasedSpeed == true ? "On" : "Off";
     };
     catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.fadeOutDuration)
         .onChanging = function() {
@@ -746,9 +838,10 @@ function showSettingsWindow() {
         };
     var checkBox = catNoteFxAnim.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.darkenBlackNotes)
     checkBox.value = midiCustomSettings.darkenBlackNotes;
+    checkBox.text = midiCustomSettings.darkenBlackNotes == true ? "On" : "Off";
     checkBox.onClick = function() {
         midiCustomSettings.darkenBlackNotes = this.value;
-        this.text = midiCustomSettings.darkenBlackNotes;
+        this.text = midiCustomSettings.darkenBlackNotes == true ? "On" : "Off";
     };
     catNoteFxAnim.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.darkenAmount)
         .onChanging = function() {
@@ -764,6 +857,101 @@ function showSettingsWindow() {
                 this.text = midiCustomSettings.dropShadowBlurSize;
             else {
                 midiCustomSettings.dropShadowBlurSize = parseInt(this.text, 10);
+            }
+        };
+    catbarLinesPos.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.barLineYPos)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.barLineYPos;
+            else {
+                midiCustomSettings.barLineYPos = parseInt(this.text, 10);
+            }
+        };
+    catbarLinesPos.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.barLineBarHeight)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.barLineBarHeight;
+            else {
+                midiCustomSettings.barLineBarHeight = parseInt(this.text, 10);
+            }
+        };
+    catbarLinesPos.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.barLineBeatHeight)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.barLineBeatHeight;
+            else {
+                midiCustomSettings.barLineBeatHeight = parseInt(this.text, 10);
+            }
+        };
+    catbarLinesFont.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.barLineFont)
+        .onChanging = function() {
+            midiCustomSettings.barLineFont = this.text;
+        };
+    catbarLinesFont.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.barLineFontSize)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.barLineFontSize;
+            else {
+                midiCustomSettings.barLineFontSize = parseInt(this.text, 10);
+            }
+        };
+    var checkBox = catPianoKeysSettings.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.bpmBasedSpeed)
+    checkBox.value = midiCustomSettings.pianoKeysCreateIndicator;
+    checkBox.text = midiCustomSettings.pianoKeysCreateIndicator == true ? "On" : "Off";
+    checkBox.onClick = function() {
+        midiCustomSettings.pianoKeysCreateIndicator = this.value;
+        this.text = midiCustomSettings.pianoKeysCreateIndicator == true ? "On" : "Off";
+    };
+    var checkBox = catPianoKeysSettings.controls.add("CheckBox", [0, 0, 64, 24], midiCustomSettings.bpmBasedSpeed)
+    checkBox.value = midiCustomSettings.pianoKeysCreateKeys;
+    checkBox.text = midiCustomSettings.pianoKeysCreateKeys == true ? "On" : "Off";
+    checkBox.onClick = function() {
+        midiCustomSettings.pianoKeysCreateKeys = this.value;
+        this.text = midiCustomSettings.pianoKeysCreateKeys == true ? "On" : "Off";
+    };
+
+    catPianoKeysSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysIndicatorWidth)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.pianoKeysIndicatorWidth;
+            else {
+                midiCustomSettings.pianoKeysIndicatorWidth = parseInt(this.text, 10);
+            }
+        };
+    catPianoKeysSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysGapSize)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.pianoKeysGapSize;
+            else {
+                midiCustomSettings.pianoKeysGapSize = parseInt(this.text, 10);
+            }
+        };
+    catPianoKeysSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysWhiteKeyWidth)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.pianoKeysWhiteKeyWidth;
+            else {
+                midiCustomSettings.pianoKeysWhiteKeyWidth = parseInt(this.text, 10);
+            }
+        };
+    catPianoKeysSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysBlackKeyWidth)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.pianoKeysBlackKeyWidth;
+            else {
+                midiCustomSettings.pianoKeysBlackKeyWidth = parseInt(this.text, 10);
+            }
+        };
+    catPianoKeysFont.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysFont)
+        .onChanging = function() {
+            midiCustomSettings.pianoKeysFont = this.text;
+        };
+    catPianoKeysFont.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.pianoKeysFontSize)
+        .onChanging = function() {
+            if (isNaN(this.text))
+                this.text = midiCustomSettings.pianoKeysFontSize;
+            else {
+                midiCustomSettings.pianoKeysFontSize = parseInt(this.text, 10);
             }
         };
     catAdvSettings.controls.add("edittext", [0, 0, 128, 24], midiCustomSettings.bpmSourceIndex)
@@ -799,6 +987,10 @@ function showSettingsWindow() {
             }
         };
 
+    tabGeneral.add("statictext", [0, 0, 320, 256], "Note about fonts: The font's PostScript name is required. If the specified font can't be found, AE will use Myriad Pro instead. To get specific a font weight, include it in the name.", {
+        multiline: true
+    }).alignment = "left";
+
     settingsWndw.bottom = settingsWndw.add("group");
     settingsWndw.bottom.orientation = "row";
     settingsWndw.bottom.alignment = "left";
@@ -823,7 +1015,7 @@ function showSettingsWindow() {
                 } else {
                     var urlLaunchCode = "cmd.exe /c Start"; // PC
                 }
-                system.callSystem(urlLaunchCode + " " + "https://github.com/PeaQew/MidiVisualizerAE");
+                system.callSystem(urlLaunchCode + " " + "https://github.com/PeaQew/MidiNoteVisualizerAE");
             }
         }
     }
@@ -912,7 +1104,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
 
                 var deltaSeconds = newSecond - currentSecond;
 
-                var speedMultiplier = currentBpm / 120.0;
+                var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
                 var deltaPosition = (deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier));
 
                 currentPosition += deltaPosition;
@@ -923,7 +1115,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
                 var newSecond = startTime;
                 var deltaSeconds = newSecond - currentSecond;
 
-                var speedMultiplier = currentBpm / 120.0;
+                var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
                 var deltaPosition = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentPosition += deltaPosition;
@@ -938,7 +1130,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
 
                 var deltaSeconds = newSecond - currentSecond;
 
-                var speedMultiplier = currentBpm / 120.0;
+                var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
                 var deltaSize = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentWidth += deltaSize;
@@ -950,7 +1142,7 @@ function getXPositionAndWidthOfNote(startTime, noteDur, bpmMap) {
 
                 var deltaSeconds = newSecond - currentSecond;
 
-                var speedMultiplier = currentBpm / 120.0;
+                var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
                 var deltaSize = deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier);
 
                 currentWidth += deltaSize;
@@ -1120,7 +1312,7 @@ function createBpmMap(midiFile) {
     var decimalPlaces = parseInt(midiCustomSettings.bpmChangeThreshold.countDecimals(), 10);
     var amountOfDecimals = Math.pow(10, decimalPlaces);
 
-    for (var i = 0; i < midiFile.tempoMap.length; i++) { // TODO: Test this logic more thoroughly
+    for (var i = 0; i < midiFile.tempoMap.length; i++) {
         var second = midiFile.getTime(midiFile.tempoMap[i].tick);
         var bpm = 60000000.0 / midiFile.tempoMap[i].microsecondsPerQuarterNote;
         if (decimalPlaces == 0) {
@@ -1155,7 +1347,7 @@ function createTimeSignatureMap(midiFile) {
 function addScrollerKeyframes(comp, bpmMap, scroller, latestMidiNote) {
     var currentSecond = 0;
     var bpmIndex = 0;
-    var currentBPM = bpmMap[bpmIndex].bpm;
+    var currentBpm = bpmMap[bpmIndex].bpm;
     var currentPosition = 0;
     midiWndw.pb.updateCurrent("Adding Scroller Keyframes: 0%", currentSecond);
 
@@ -1164,13 +1356,13 @@ function addScrollerKeyframes(comp, bpmMap, scroller, latestMidiNote) {
     }
 
     while (currentSecond != latestMidiNote) {
-        currentBPM = bpmMap[bpmIndex].bpm;
+        currentBpm = bpmMap[bpmIndex].bpm;
 
         if (bpmIndex + 1 < bpmMap.length && bpmMap[bpmIndex + 1].second < latestMidiNote) {
             var newSecond = bpmMap[bpmIndex + 1].second;
             var deltaSeconds = newSecond - currentSecond;
 
-            var speedMultiplier = currentBPM / 120.0;
+            var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
             var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier)) * -1);
 
             scroller.property("transform").property("position").setValueAtTime(newSecond, [newPosition, comp.height / 2]);
@@ -1182,7 +1374,7 @@ function addScrollerKeyframes(comp, bpmMap, scroller, latestMidiNote) {
             var newSecond = latestMidiNote;
             var deltaSeconds = newSecond - currentSecond;
 
-            var speedMultiplier = currentBPM / 120.0;
+            var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
             var newPosition = currentPosition + ((deltaSeconds * (midiCustomSettings.velocityPerSecond * speedMultiplier)) * -1);
             scroller.property("transform").property("position").setValueAtTime(newSecond, [newPosition, comp.height / 2]);
 
@@ -1208,12 +1400,17 @@ function PresetColor(name, color) {
     this.color = [color[0] / 255, color[1] / 255, color[2] / 255, 1];
 }
 
-// TODO: Update default settings
 function MidiCustomSettings() {
     // General //
     // Composition
     this.scrollCompFramerate = 60;
     this.noteCompFramerate = 30;
+    this.resolutionWidth = 1920;
+    this.resolutionHeight = 1080;
+    // BPM Text
+    this.createBpmText = false;
+    this.bpmTextFont = "Arial";
+    this.bpmTextFontSize = 32;
 
     // Notes //
     // Position
@@ -1236,6 +1433,27 @@ function MidiCustomSettings() {
     this.darkenAmount = 20; // The amount of darkening
 
     this.dropShadowBlurSize = 16; // The amount of softness applied to the dropShadow effect of the notes.
+
+    // BarLines //
+    // Position
+    this.barLineYPos = 164;
+    this.barLineBarHeight = 48;
+    this.barLineBeatHeight = 16;
+    // Font
+    this.barLineFont = "Arial-BoldMT";
+    this.barLineFontSize = 36;
+
+    // PianoKeys
+    this.pianoKeysCreateIndicator = true;
+    this.pianoKeysCreateKeys = true;
+    this.pianoKeysIndicatorWidth = 4;
+    this.pianoKeysGapSize = 32;
+    this.pianoKeysWhiteKeyWidth = 24;
+    this.pianoKeysBlackKeyWidth = 16;
+    // Font
+    this.pianoKeysFont = "Arial-BoldMT";
+    this.pianoKeysFontSize = 22;
+
     // Advanced
     this.bpmSourceIndex = 0; // The index of the MIDI file to take the tempo map from
     this.timeSigSourceIndex = 0; // The index of the MIDI file to take the time sig from
@@ -1269,6 +1487,13 @@ function MidiCustomSettings() {
         try {
             this.scrollCompFramerate = parseInt(xmlObj.settings.scrollCompFramerate, 10);
             this.noteCompFramerate = parseInt(xmlObj.settings.noteCompFramerate, 10);
+            this.resolutionWidth = parseInt(xmlObj.settings.resolutionWidth, 10);
+            this.resolutionHeight = parseInt(xmlObj.settings.resolutionHeight, 10);
+
+            this.bpmTextFont = xmlObj.settings.bpmTextFont;
+            this.bpmTextFontSize = parseInt(xmlObj.settings.bpmTextFontSize, 10);
+            this.createBpmText = xmlObj.settings.createBpmText == "true" ? true : false;
+
             this.noteHitXOffset = parseInt(xmlObj.settings.noteHitXOffset, 10);
             this.noteYOffset = parseInt(xmlObj.settings.noteYOffset, 10);
             this.pitchBottomThreshold = parseInt(xmlObj.settings.pitchBottomThreshold, 10);
@@ -1284,8 +1509,23 @@ function MidiCustomSettings() {
 
             this.darkenBlackNotes = xmlObj.settings.darkenBlackNotes == "true" ? true : false;
             this.darkenAmount = parseInt(xmlObj.settings.darkenAmount, 10);
-
             this.dropShadowBlurSize = parseInt(xmlObj.settings.dropShadowBlurSize, 10);
+
+            this.barLineYPos = parseInt(xmlObj.barLines.barLineYPos, 10);
+            this.barLineBarHeight = parseInt(xmlObj.barLines.barLineBarHeight, 10);
+            this.barLineBeatHeight = parseInt(xmlObj.barLines.barLineBeatHeight, 10);
+            this.barLineFont = xmlObj.barLines.barLineFont;
+            this.barLineFontSize = parseInt(xmlObj.barLines.barLineFontSize, 10);
+
+            this.pianoKeysCreateIndicator = xmlObj.pianoKeys.pianoKeysCreateIndicator == "true" ? true : false;
+            this.pianoKeysCreateKeys = xmlObj.pianoKeys.pianoKeysCreateKeys == "true" ? true : false;
+            this.pianoKeysIndicatorWidth = parseInt(xmlObj.pianoKeys.pianoKeysIndicatorWidth, 10);
+            this.pianoKeysGapSize = parseInt(xmlObj.pianoKeys.pianoKeysGapSize, 10);
+            this.pianoKeysWhiteKeyWidth = parseInt(xmlObj.pianoKeys.pianoKeysWhiteKeyWidth, 10);
+            this.pianoKeysBlackKeyWidth = parseInt(xmlObj.pianoKeys.pianoKeysBlackKeyWidth, 10);
+            this.pianoKeysFont = xmlObj.pianoKeys.pianoKeysFont;
+            this.pianoKeysFontSize = parseInt(xmlObj.pianoKeys.pianoKeysFontSize, 10);
+
 
             this.bpmSourceIndex = parseInt(xmlObj.settings.bpmSourceIndex, 10);
             this.timeSigSourceIndex = parseInt(xmlObj.settings.timeSigSourceIndex, 10);
@@ -1306,6 +1546,12 @@ function MidiCustomSettings() {
         }
         xmlObj.settings.scrollCompFramerate = this.scrollCompFramerate;
         xmlObj.settings.noteCompFramerate = this.noteCompFramerate;
+        xmlObj.settings.resolutionWidth = this.resolutionWidth;
+        xmlObj.settings.resolutionHeight = this.resolutionHeight;
+
+        xmlObj.settings.bpmTextFont = this.bpmTextFont;
+        xmlObj.settings.bpmTextFontSize = this.bpmTextFontSize;
+        xmlObj.settings.createBpmText = this.createBpmText;
 
         xmlObj.settings.noteHitXOffset = this.noteHitXOffset;
         xmlObj.settings.noteYOffset = this.noteYOffset;
@@ -1322,6 +1568,21 @@ function MidiCustomSettings() {
         xmlObj.settings.darkenBlackNotes = this.darkenBlackNotes;
         xmlObj.settings.darkenAmount = this.darkenAmount;
         xmlObj.settings.dropShadowBlurSize = this.dropShadowBlurSize;
+
+        xmlObj.barLines.barLineYPos = this.barLineYPos;
+        xmlObj.barLines.barLineBarHeight = this.barLineBarHeight;
+        xmlObj.barLines.barLineBeatHeight = this.barLineBeatHeight;
+        xmlObj.barLines.barLineFont = this.barLineFont;
+        xmlObj.barLines.barLineFontSize = this.barLineFontSize;
+
+        xmlObj.pianoKeys.pianoKeysCreateIndicator = this.pianoKeysCreateIndicator;
+        xmlObj.pianoKeys.pianoKeysCreateKeys = this.pianoKeysCreateKeys;
+        xmlObj.pianoKeys.pianoKeysIndicatorWidth = this.pianoKeysIndicatorWidth;
+        xmlObj.pianoKeys.pianoKeysGapSize = this.pianoKeysGapSize;
+        xmlObj.pianoKeys.pianoKeysWhiteKeyWidth = this.pianoKeysWhiteKeyWidth;
+        xmlObj.pianoKeys.pianoKeysBlackKeyWidth = this.pianoKeysBlackKeyWidth;
+        xmlObj.pianoKeys.pianoKeysFont = this.pianoKeysFont;
+        xmlObj.pianoKeys.pianoKeysFontSize = this.pianoKeysFontSize;
 
         xmlObj.settings.bpmSourceIndex = this.bpmSourceIndex;
         xmlObj.settings.timeSigSourceIndex = this.timeSigSourceIndex;
@@ -1345,6 +1606,12 @@ function MidiCustomSettings() {
     this.revertToDefaultValues = function() {
         this.scrollCompFramerate = 60;
         this.noteCompFramerate = 30;
+        this.resolutionWidth = 1920;
+        this.resolutionHeight = 1080;
+
+        this.createBpmText = false;
+        this.bpmTextFont = "Arial";
+        this.bpmTextFontSize = 32;
 
         this.noteHitXOffset = 192;
         this.noteYOffset = 0;
@@ -1362,6 +1629,21 @@ function MidiCustomSettings() {
         this.darkenAmount = 20;
 
         this.dropShadowBlurSize = 16;
+
+        this.barLineYPos = 164;
+        this.barLineBarHeight = 48;
+        this.barLineBeatHeight = 16;
+        this.barLineFont = "Arial-BoldMT";
+        this.barLineFontSize = 36;
+
+        this.pianoKeysCreateIndicator = true;
+        this.pianoKeysCreateKeys = true;
+        this.pianoKeysIndicatorWidth = 4;
+        this.pianoKeysGapSize = 32;
+        this.pianoKeysWhiteKeyWidth = 24;
+        this.pianoKeysBlackKeyWidth = 16;
+        this.pianoKeysFont = "Arial-BoldMT";
+        this.pianoKeysFontSize = 22;
 
         this.bpmSourceIndex = 0;
         this.timeSigSourceIndex = 0;
@@ -1484,6 +1766,175 @@ function updateListBoxData() {
     }
 }
 
+function createBarLines(timeSigMap, bpmMap, latestMidiNote) {
+    midiWndw.pb.updateTotal("Creating Bar Lines", 35);
+
+    var currentTime = 0;
+    var currentBpm = bpmMap[0];
+
+    var scrollerComp = app.project.items.addComp("_BarLines Scroller", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
+    var scroller = scrollerComp.layers.addNull();
+    scroller.name = "Scroller";
+    scroller.property("transform").property("position").setValueAtTime(0, [0, scrollerComp.height / 2]);
+    scroller.property("transform").property("position").setSpatialAutoBezierAtKey(1, false);
+
+    if (midiCustomSettings.bpmBasedSpeed)
+        addScrollerKeyframes(scrollerComp, bpmMap, scroller, latestMidiNote);
+    else
+        scroller.property("transform").property("position").setValueAtTime(latestMidiNote, [(latestMidiNote * midiCustomSettings.velocityPerSecond) * -1, scrollerComp.height / 2]);
+
+    var comp = app.project.items.addComp("BarLines", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, latestMidiNote, 30);
+    var compLayer = scrollerComp.layers.add(comp);
+    compLayer.parent = scroller;
+
+    // This makes it so that the comps don't get cropped off
+    compLayer.collapseTransformation = true;
+
+    bpmIndex = 0;
+    timeSigIndex = 0;
+    var currentPosition;
+
+    var yPos = midiCustomSettings.barLineYPos;
+    var barHeight = midiCustomSettings.barLineBarHeight;
+    var beatHeight = midiCustomSettings.barLineBeatHeight;
+
+    var stepNumber = 1;
+    var barNumber = 1;
+    while (currentTime <= latestMidiNote) {
+        currentBpm = bpmMap[bpmIndex].bpm;
+        var newTime = currentTime;
+
+        var deltaPosition = 0;
+        var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
+
+        if (timeSigIndex + 1 < timeSigMap.length) {
+            // if (Math.abs(currentTime - timeSigMap[timeSigIndex].second) < 0.05) {
+            //     timeSigIndex++;
+            //     stepNumber = 1;
+            // }
+            if (currentTime > timeSigMap[timeSigIndex + 1].second || (timeSigMap[timeSigIndex + 1].second - currentTime < 0.1)) {
+                timeSigIndex++;
+                stepNumber = 1;
+                currentTime = timeSigMap[timeSigIndex].second;
+                barNumber++;
+            }
+
+        }
+        if (stepNumber > timeSigMap[timeSigIndex].numerator) {
+            stepNumber = 1;
+            barNumber++;
+        }
+        var xPos = midiCustomSettings.noteHitXOffset + (currentTime * midiCustomSettings.velocityPerSecond * speedMultiplier)
+        if (stepNumber == 1) {
+            var barTextLayer = comp.layers.addText();
+            var barText = barTextLayer.property("Source Text");
+
+            var barTextDocument = new TextDocument(barNumber);
+            barText.setValue(barTextDocument);
+            barTextDocument = barText.value;
+            barTextDocument.font = midiCustomSettings.barLineFont;
+            barTextDocument.justification = ParagraphJustification.LEFT_JUSTIFY;
+            barTextDocument.fillColor = [1, 1, 1];
+            barTextDocument.fontSize = midiCustomSettings.barLineFontSize;
+            barText.setValue(barTextDocument);
+
+            barTextLayer.property("transform").property("position").setValue([xPos + 16, yPos + barHeight]);
+        }
+        var height = stepNumber == 1 ? barHeight : beatHeight;
+        var solid = comp.layers.addSolid([1, 1, 1], barNumber + ":" + stepNumber + " (" + bpmMap[bpmIndex].microsecondsPerQuarterNote + " ms/qn)", 4, height, 1.0);
+        solid.property("transform").property("position").setValue([xPos, yPos]);
+        solid.property("transform").property("anchorPoint").setValue([2, 0]);
+
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor(currentTime / latestMidiNote * 100) + "% (" + barNumber + ":" + stepNumber + ")", currentTime / latestMidiNote * 100);
+
+        currentTime += (midiWndw.halfSpeedCheckbox.value ? 2 : 1) * 60 / bpmMap[bpmIndex].bpm * (4 / timeSigMap[timeSigIndex].denominator);
+        stepNumber++;
+        if (midiWndw.pb.isCanceled) {
+            break;
+        }
+    }
+    return comp;
+}
+
+function createPianoKeys() {
+    midiWndw.pb.updateTotal("Creating Piano Keys", 50);
+    var comp = app.project.items.addComp("PianoKeys", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, 2, 1);
+
+    var indicatorWidth = midiCustomSettings.pianoKeysIndicatorWidth;
+    var gapSize = midiCustomSettings.pianoKeysGapSize;
+    if (midiCustomSettings.pianoKeysCreateIndicator) {
+        var noteOnIndicator = comp.layers.addSolid([1, 1, 1], "NoteOnIndicator", indicatorWidth, comp.height, 1.0);
+        noteOnIndicator.property("transform").property("position").setValue([midiCustomSettings.noteHitXOffset - (indicatorWidth / 2), comp.height / 2]);
+    }
+    if (midiCustomSettings.pianoKeysCreateKeys) {
+        for (var i = midiCustomSettings.pitchBottomThreshold; i <= midiCustomSettings.pitchTopThreshold; i++) {
+            var yPos = midiCustomSettings.resolutionHeight - getYPositionAndHeightOfKey(i)[0];
+
+            if (i % 12 == 0) { // Is it a C?
+                var width = midiCustomSettings.pianoKeysWhiteKeyWidth;
+
+                var cKeyTextLayer = comp.layers.addText();
+                var cKeyText = cKeyTextLayer.property("Source Text");
+
+                var cKeyTextDocument = new TextDocument("C" + Math.floor(i / 12));
+                cKeyText.setValue(cKeyTextDocument);
+                cKeyTextDocument = cKeyText.value;
+                cKeyTextDocument.font = midiCustomSettings.pianoKeysFont;
+                cKeyTextDocument.justification = ParagraphJustification.RIGHT_JUSTIFY;
+                cKeyTextDocument.fillColor = [1, 1, 1];
+                cKeyTextDocument.fontSize = midiCustomSettings.pianoKeysFontSize;
+                cKeyText.setValue(cKeyTextDocument);
+
+                var xPos = ((midiCustomSettings.noteHitXOffset - (indicatorWidth / 2)) + width / 2) - gapSize;
+                cKeyTextLayer.property("transform").property("position").setValue([xPos - 24, yPos + cKeyTextLayer.sourceRectAtTime(0, true).height / 2]);
+            } else {
+                var width = isBlackNote(i) ? midiCustomSettings.pianoKeysBlackKeyWidth : midiCustomSettings.pianoKeysWhiteKeyWidth;
+                var xPos = ((midiCustomSettings.noteHitXOffset - (indicatorWidth / 2)) + width / 2) - gapSize;
+            }
+            var key = comp.layers.addSolid([1, 1, 1], i, width,
+                isBlackNote(i) ? midiCustomSettings.blackNoteSize / 2 : midiCustomSettings.whiteNoteSize / 2, 1.0);
+
+            key.property("transform").property("position").setValue([xPos, yPos]);
+            var progress = (i - midiCustomSettings.pitchBottomThreshold) / (midiCustomSettings.pitchTopThreshold - midiCustomSettings.pitchBottomThreshold);
+            midiWndw.pb.updateCurrent("Progress: " + Math.floor(progress * 100) + "%", progress * 100);
+
+            if (midiWndw.pb.isCanceled) {
+                break;
+            }
+        }
+    }
+    return comp;
+}
+
+function createBpmText(masterComp, bpmMap) {
+    var bpmText = masterComp.layers.addText().property("Source Text");
+
+    var bpmTextDocument = bpmText.value;
+    bpmTextDocument.resetCharStyle();
+    bpmTextDocument.fillColor = [1, 1, 1];
+    bpmTextDocument.fontSize = midiCustomSettings.bpmTextFontSize;
+    bpmTextDocument.font = midiCustomSettings.bpmTextFont;
+    bpmTextDocument.justification = ParagraphJustification.LEFT_JUSTIFY;
+    bpmText.setValue(bpmTextDocument);
+
+    midiWndw.pb.updateTotal("Adding BPM Text Keyframes", 70);
+
+    var previousValue = 0;
+    for (var i = 0; i < bpmMap.length; i++) {
+        var newValue = Math.floor(bpmMap[i].bpm);
+        if (newValue != previousValue) { // Only set keyframes when the whole number changes to avoid blowing After Effects up
+            bpmTextDocument.text = newValue;
+            bpmText.setValueAtTime(bpmMap[i].second, bpmTextDocument);
+        }
+        if (midiWndw.pb.isCanceled)
+            break;
+
+        previousValue = newValue;
+
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor((((i + 1) / bpmMap.length) * 100)) + "% (" + Math.floor(bpmMap[i].second / 60) + "m" + Math.floor(bpmMap[i].second) % 60 + "s: " + bpmMap[bpmMap.length - 1].bpm + "BPM)", ((i + 1) / bpmMap.length) * 100);
+    }
+}
+
 function createVisualizer() {
     app.beginUndoGroup("Generate MIDI Visualizer");
 
@@ -1494,7 +1945,7 @@ function createVisualizer() {
     var parsedMidiFiles = readMidiFiles();
     var latestMidiNote = getLatestMidiNote(parsedMidiFiles);
 
-    var masterComp = app.project.items.addComp("MidiMaster", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
+    var masterComp = app.project.items.addComp("MidiMaster", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
     if (midiCustomSettings.bpmSourceIndex < 0)
         midiCustomSettings.bpmSourceIndex = 0;
     if (midiCustomSettings.bpmSourceIndex + 1 > parsedMidiFiles.length)
@@ -1508,17 +1959,18 @@ function createVisualizer() {
     var bpmMap = createBpmMap(parsedMidiFiles[midiCustomSettings.bpmSourceIndex]);
     var timeSigMap = createTimeSignatureMap(parsedMidiFiles[midiCustomSettings.timeSigSourceIndex]);
 
-    // TODO: Re-implement these with customization options
-    // createBarLines(timeSigMap, bpmMap, latestMidiNote);
-    // createPianoRoll();
-    // Create BPM Text that updates on BPM change
-    // ...
+
+    createBarLines(timeSigMap, bpmMap, latestMidiNote);
+    if (midiCustomSettings.pianoKeysCreateKeys || midiCustomSettings.pianoKeysCreateIndicator)
+        createPianoKeys();
+    if (midiCustomSettings.createBpmText)
+        createBpmText(masterComp, bpmMap);
 
     if (!midiWndw.pb.isCanceled) {
         for (var i = 0; i < parsedMidiFiles.length; i++) {
             latestMidiNote = getLatestMidiNote(parsedMidiFiles[i]);
 
-            var scrollerComp = app.project.items.addComp("_" + midiConfigs[i].name + " Scroller", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
+            var scrollerComp = app.project.items.addComp("_" + midiConfigs[i].name + " Scroller", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, latestMidiNote, midiCustomSettings.scrollCompFramerate);
             var scroller = scrollerComp.layers.addNull();
             scroller.name = "Scroller";
             scroller.property("transform").property("position").setValueAtTime(0, [0, scrollerComp.height / 2]);
@@ -1532,7 +1984,7 @@ function createVisualizer() {
 
             midiWndw.pb.updateTotal("Processing " + midiConfigs[i].name + " (" + (i + 1) + "/" + parsedMidiFiles.length + ")", ((i + 1) / parsedMidiFiles.length) * 100);
 
-            var comp = app.project.items.addComp(midiConfigs[i].name + " notes", 1920, 1080, 1.0, latestMidiNote, midiCustomSettings.noteCompFramerate);
+            var comp = app.project.items.addComp(midiConfigs[i].name + " notes", midiCustomSettings.resolutionWidth, midiCustomSettings.resolutionHeight, 1.0, latestMidiNote, midiCustomSettings.noteCompFramerate);
             var compLayer = scrollerComp.layers.add(comp);
             compLayer.parent = scroller;
             // This makes it so that the comps don't get cropped off
@@ -1574,7 +2026,7 @@ function createVisualizer() {
                     var xPosAndWidth = getXPositionAndWidthOfNote(noteTime, noteDur, bpmMap);
                     var yPosAndHeight = getYPositionAndHeightOfKey(notePitch);
 
-                    shape.property("transform").property("position").setValue([xPosAndWidth[0], 1080 - yPosAndHeight[0]]);
+                    shape.property("transform").property("position").setValue([xPosAndWidth[0], midiCustomSettings.resolutionHeight - yPosAndHeight[0]]);
                     shape.property("transform").property("anchorPoint").setValue([xPosAndWidth[1] * -0.5, 0]);
 
                     contents.property("ADBE Vector Shape - Rect").property("ADBE Vector Rect Size").setValue([xPosAndWidth[1], yPosAndHeight[1]]);
@@ -1606,7 +2058,7 @@ function createVisualizer() {
                     shape.property("transform").property("scale").setInterpolationTypeAtKey(noteTime == 0 ? 1 : 2, KeyframeInterpolationType.LINEAR);
                     shape.property("transform").property("scale").setValueAtTime(noteTime + 0.2, [100, 100]);
 
-                    shape.name = "(" + j + ")" + "Time: " + noteTime + ", Vel: " + currentMidi.notes[j].vel + ", pitch: " + notePitch + ", channel: " + currentMidi.notes[j].channel + ", Dur: " + noteDur;
+                    shape.name = "(" + j + ") " + "Time: " + noteTime + ", Vel: " + currentMidi.notes[j].vel + ", pitch: " + notePitch + ", channel: " + currentMidi.notes[j].channel + ", Dur: " + noteDur;
                 }
                 midiWndw.pb.updateCurrent((j + 1) + "/" + notesCount + " note events processed", ((j + 1) / notesCount) * 100);
                 if (midiWndw.pb.isCanceled) {
@@ -1636,8 +2088,6 @@ function createVisualizer() {
 
     midiWndw.pb.updateCurrent("All done! It took " + Math.floor(midiWndw.pb.deltaTime / 60) + "m" + midiWndw.pb.deltaTime % 60 + "s to process.", 100);
 }
-
-// TODO: Rework the UI to be more useful
 
 // window config //
 
@@ -1680,7 +2130,7 @@ midiWndw.topContainer.add("button", undefined, "Select Folder").onClick = functi
                 midiWndw.midiContainer.midiListBox.selection = 0;
             }
         } else {
-            Window.alert("Please select a folder, not a file!"); // Not sure if you even can select a file
+            Window.alert("Please select a folder, not a file!"); // Not sure if you can even select a file
         }
     }
 };
@@ -1754,17 +2204,17 @@ midiWndw.footer.orientation = "row";
 
 
 midiWndw.footer.margins = 0;
-var creditsText = midiWndw.footer.add("statictext", undefined, "Tool created by PeaQew. Credits to omino for the MIDI File Reader.\nContact: peaqew@gmail.com or u/PeaQew");
-creditsText.alignment = "left";
-creditsText.preferredSize.height = 46;
+var creditsText = midiWndw.footer.add("statictext", undefined, "Tool created by PeaQew. Credits to omino for the MIDI File Reader.");
+creditsText.alignment = ["left", "bottom"];
+// creditsText.preferredSize.height = 46;
 
 midiWndw.footer.rightGroup = midiWndw.footer.add("group");
 midiWndw.footer.rightGroup.alignment = ["right", "bottom"];
 midiWndw.footer.rightGroup.orientation = "column";
 
-var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v0.9.0");
+var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v1.0.0");
 versionText.alignment = "right";
-versionText.helpTip = "Version 0.9.0, 2021-01-25";
+versionText.helpTip = "Version 1.0.0, 2021-02-02";
 
 midiWndw.footer.settingsBtn = midiWndw.footer.rightGroup.add("button", undefined, "Settings");
 midiWndw.footer.settingsBtn.onClick = function() {
