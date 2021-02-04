@@ -1052,10 +1052,13 @@ function getLatestMidiNote(midiFiles) {
             if (midiFiles[i].notes.length == 0)
                 continue;
 
+			var noteTime = undefined;
+			var noteDur = undefined;
+
             var noteIndex = midiFiles[i].notes.length - 1;
             while (noteDur == undefined) { // Find the last note with a duration
-                var noteTime = midiFiles[i].notes[noteIndex].time;
-                var noteDur = midiFiles[i].notes[noteIndex].durTime;
+                noteTime = midiFiles[i].notes[noteIndex].time;
+                noteDur = midiFiles[i].notes[noteIndex].durTime;
                 noteIndex--;
                 if (noteIndex < 0)
                     break;
