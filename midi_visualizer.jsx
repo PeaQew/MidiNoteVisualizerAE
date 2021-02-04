@@ -572,7 +572,7 @@ function showSettingsWindow() {
     var tabPianoKeys = tabbedPanel.add("tab", undefined, "Piano Keys");
     var tabAdvanced = tabbedPanel.add("tab", undefined, "Advanced");
     var tabContact = tabbedPanel.add("tab", undefined, "Contact");
-	tabContact.add("panel").add("statictext", [0 + 16, 0 + 16, 384 + 16, 512 + 16], "Need a new feature? Found a bug? Here's how you can contact me:\n\nE-Mail: peaqew@gmail.com\nDiscord: PeaQ#9827\nReddit: u/PeaQew\nTwitter: @PeaQew", {
+    tabContact.add("panel").add("statictext", [0 + 16, 0 + 16, 384 + 16, 512 + 16], "Need a new feature? Found a bug? Here's how you can contact me:\n\nE-Mail: peaqew@gmail.com\nDiscord: PeaQ#9827\nReddit: u/PeaQew\nTwitter: @PeaQew", {
         multiline: true
     }).alignment = "left";
 
@@ -1019,15 +1019,11 @@ function showSettingsWindow() {
             }
         }
     }
-
     settingsWndw.show();
 }
 
 function getOS() {
-
-    var op = $.os;
-
-    var match = op.indexOf("Windows");
+    var match = $.os.indexOf("Windows");
     if (match != (-1)) {
         var userOS = "PC"; // User is on PC
     } else {
@@ -1766,7 +1762,7 @@ function updateListBoxData() {
     }
 }
 
-function createBarLines(timeSigMap, bpmMap, latestMidiNote) {
+function createBarLines(timeSigMap, bpmMap, tempoMap, timeDivision, latestMidiNote) {
     midiWndw.pb.updateTotal("Creating Bar Lines", 35);
 
     var currentTime = 0;
@@ -1790,8 +1786,9 @@ function createBarLines(timeSigMap, bpmMap, latestMidiNote) {
     // This makes it so that the comps don't get cropped off
     compLayer.collapseTransformation = true;
 
-    bpmIndex = 0;
-    timeSigIndex = 0;
+    var tempoIndex = 0;
+    var timeSigIndex = 0;
+    var currentTick = 0;
     var currentPosition;
 
     var yPos = midiCustomSettings.barLineYPos;
@@ -1801,30 +1798,51 @@ function createBarLines(timeSigMap, bpmMap, latestMidiNote) {
     var stepNumber = 1;
     var barNumber = 1;
     while (currentTime <= latestMidiNote) {
-        currentBpm = bpmMap[bpmIndex].bpm;
-        var newTime = currentTime;
+        var deltaSeconds = 0;
 
-        var deltaPosition = 0;
-        var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? currentBpm / 120.0 : 1;
+        var currentMicrosecondsPerQuarterNote = 500000;
 
-        if (timeSigIndex + 1 < timeSigMap.length) {
-            // if (Math.abs(currentTime - timeSigMap[timeSigIndex].second) < 0.05) {
-            //     timeSigIndex++;
-            //     stepNumber = 1;
-            // }
-            if (currentTime > timeSigMap[timeSigIndex + 1].second || (timeSigMap[timeSigIndex + 1].second - currentTime < 0.1)) {
+        var prevTickCounter = currentTick;
+        var deltaTickCounter = 0;
+
+        var targetTick = currentTick + Math.floor((timeDivision * (4 / timeSigMap[timeSigIndex].denominator)));
+
+        while (currentTick < targetTick) {
+            if (timeSigIndex + 1 < timeSigMap.length && currentTick + (targetTick - currentTick) >= timeSigMap[timeSigIndex + 1].tick) {
+                // TODO: Test if this part actually works
                 timeSigIndex++;
                 stepNumber = 1;
-                currentTime = timeSigMap[timeSigIndex].second;
                 barNumber++;
-            }
 
+                currentTick = timeSigMap[timeSigIndex].tick;
+                deltaTickCounter = currentTick - prevTickCounter;
+                deltaSeconds += (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
+                prevTickCounter = currentTick;
+                break;
+            }
+            if (tempoIndex < tempoMap.length) {
+                currentMicrosecondsPerQuarterNote = (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * tempoMap[tempoIndex].microsecondsPerQuarterNote;
+                if (tempoIndex + 1 >= tempoMap.length) {
+                    currentTick = targetTick;
+                } else if (targetTick <= tempoMap[tempoIndex + 1].tick) {
+                    currentTick = targetTick;
+                } else {
+                    currentTick = tempoMap[tempoIndex + 1].tick;
+                    tempoIndex++;
+                }
+            } else {
+                currentTick = targetTick;
+            }
+            deltaTickCounter = currentTick - prevTickCounter;
+            deltaSeconds += (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
+            prevTickCounter = currentTick;
         }
+
         if (stepNumber > timeSigMap[timeSigIndex].numerator) {
             stepNumber = 1;
             barNumber++;
         }
-        var xPos = midiCustomSettings.noteHitXOffset + (currentTime * midiCustomSettings.velocityPerSecond * speedMultiplier)
+        var xPos = midiCustomSettings.noteHitXOffset + (currentTime * midiCustomSettings.velocityPerSecond /* * speedMultiplier */ );
         if (stepNumber == 1) {
             var barTextLayer = comp.layers.addText();
             var barText = barTextLayer.property("Source Text");
@@ -1841,13 +1859,13 @@ function createBarLines(timeSigMap, bpmMap, latestMidiNote) {
             barTextLayer.property("transform").property("position").setValue([xPos + 16, yPos + barHeight]);
         }
         var height = stepNumber == 1 ? barHeight : beatHeight;
-        var solid = comp.layers.addSolid([1, 1, 1], barNumber + ":" + stepNumber + " (" + bpmMap[bpmIndex].microsecondsPerQuarterNote + " ms/qn)", 4, height, 1.0);
+        var solid = comp.layers.addSolid([1, 1, 1], barNumber + ":" + stepNumber + " (" + Math.floor(currentTime / 60) + "m" + Math.floor(currentTime) % 60 + "s, " + tempoMap[tempoIndex].microsecondsPerQuarterNote + " ms/qn)", 4, height, 1.0);
         solid.property("transform").property("position").setValue([xPos, yPos]);
         solid.property("transform").property("anchorPoint").setValue([2, 0]);
 
-        midiWndw.pb.updateCurrent("Progress: " + Math.floor(currentTime / latestMidiNote * 100) + "% (" + barNumber + ":" + stepNumber + ")", currentTime / latestMidiNote * 100);
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor(currentTime / latestMidiNote * 100) + "% (" + Math.floor(currentTime / 60) + "m" + Math.floor(currentTime) % 60 + "s, " + barNumber + ":" + stepNumber + ")", currentTime / latestMidiNote * 100);
 
-        currentTime += (midiWndw.halfSpeedCheckbox.value ? 2 : 1) * 60 / bpmMap[bpmIndex].bpm * (4 / timeSigMap[timeSigIndex].denominator);
+        currentTime += deltaSeconds;
         stepNumber++;
         if (midiWndw.pb.isCanceled) {
             break;
@@ -1931,7 +1949,7 @@ function createBpmText(masterComp, bpmMap) {
 
         previousValue = newValue;
 
-        midiWndw.pb.updateCurrent("Progress: " + Math.floor((((i + 1) / bpmMap.length) * 100)) + "% (" + Math.floor(bpmMap[i].second / 60) + "m" + Math.floor(bpmMap[i].second) % 60 + "s: " + bpmMap[bpmMap.length - 1].bpm + "BPM)", ((i + 1) / bpmMap.length) * 100);
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor((((i + 1) / bpmMap.length) * 100)) + "% (" + Math.floor(bpmMap[i].second / 60) + "m" + Math.floor(bpmMap[i].second) % 60 + "s: " + bpmMap[i].bpm + "BPM)", ((i + 1) / bpmMap.length) * 100);
     }
 }
 
@@ -1959,8 +1977,7 @@ function createVisualizer() {
     var bpmMap = createBpmMap(parsedMidiFiles[midiCustomSettings.bpmSourceIndex]);
     var timeSigMap = createTimeSignatureMap(parsedMidiFiles[midiCustomSettings.timeSigSourceIndex]);
 
-
-    createBarLines(timeSigMap, bpmMap, latestMidiNote);
+    createBarLines(timeSigMap, bpmMap, parsedMidiFiles[midiCustomSettings.bpmSourceIndex].tempoMap, parsedMidiFiles[midiCustomSettings.bpmSourceIndex].timeDivision, latestMidiNote);
     if (midiCustomSettings.pianoKeysCreateKeys || midiCustomSettings.pianoKeysCreateIndicator)
         createPianoKeys();
     if (midiCustomSettings.createBpmText)
@@ -1975,7 +1992,6 @@ function createVisualizer() {
             scroller.name = "Scroller";
             scroller.property("transform").property("position").setValueAtTime(0, [0, scrollerComp.height / 2]);
             scroller.property("transform").property("position").setSpatialAutoBezierAtKey(1, false);
-
 
             if (midiCustomSettings.bpmBasedSpeed)
                 addScrollerKeyframes(scrollerComp, bpmMap, scroller, latestMidiNote);
@@ -2206,7 +2222,6 @@ midiWndw.footer.orientation = "row";
 midiWndw.footer.margins = 0;
 var creditsText = midiWndw.footer.add("statictext", undefined, "Tool created by PeaQew. Credits to omino for the MIDI File Reader.");
 creditsText.alignment = ["left", "bottom"];
-// creditsText.preferredSize.height = 46;
 
 midiWndw.footer.rightGroup = midiWndw.footer.add("group");
 midiWndw.footer.rightGroup.alignment = ["right", "bottom"];
