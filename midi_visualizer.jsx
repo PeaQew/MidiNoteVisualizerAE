@@ -3,7 +3,7 @@
 /*
 > author: Sammy Kraus (PeaQew) <peaqew@gmail.com>
 > first created: 2021-01-13
-> version: 1.0.0 (2021-02-02)
+> version: 1.0.1 (2021-02-04)
 > description:
 	* This ExtendScript tool creates a piano roll-style MIDI visualizer inside of Adobe After Effects.
 
@@ -2227,9 +2227,9 @@ midiWndw.footer.rightGroup = midiWndw.footer.add("group");
 midiWndw.footer.rightGroup.alignment = ["right", "bottom"];
 midiWndw.footer.rightGroup.orientation = "column";
 
-var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v1.0.0");
+var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v1.0.1");
 versionText.alignment = "right";
-versionText.helpTip = "Version 1.0.0, 2021-02-02";
+versionText.helpTip = "Version 1.0.1, 2021-02-04";
 
 midiWndw.footer.settingsBtn = midiWndw.footer.rightGroup.add("button", undefined, "Settings");
 midiWndw.footer.settingsBtn.onClick = function() {
