@@ -27,7 +27,7 @@ This, provides an alternative to using real time MIDI visualizers or recording a
 
 Initially created for personal use, but I decided to make it user-friendly enough and upload it so that everyone can use it!
 
-**[Grab the latest release here!](https://github.com/PeaQew/MidiVisualizerAE/releases/latest)**
+**[Grab the latest release here!](https://github.com/PeaQew/MidiVisualizerAE/releases)**
 
 The script includes a MIDI File Reader made by David Van Brink, which you can find [here](http://omino.com/pixelblog/2011/12/26/ae-hello-again-midi/).
 
@@ -71,7 +71,7 @@ From here you can put everything else you want into your video and render the fi
 If you choose to create the Piano Key Visuals (as seen in the GIF above), you need to render it as a PNG image. To do that, open the `Piano Keys` comp, select the first frame and go to `Composition -> Save Frame As -> File...`. From there, make sure to select `PNG Sequence` as your format. This will render a single image, which you can put into your composition.
 
 ## Future Versions
-Version 1.0 is what I would call "finished", as in, I don't need it to do more than that for my personal use-case. But you can always [contact me](#contact-me) and ask for new features!
+Version 1.0.0 is what I would call "finished", as in, I don't need it to do more than that for my personal use-case. I will mostly fix bugs I encounter, but you can also always [contact me](#contact-me) and ask for new features!
 
 
 ## Settings File
