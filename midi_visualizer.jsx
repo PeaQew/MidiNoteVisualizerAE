@@ -3,7 +3,7 @@
 /*
 > author: Sammy Kraus (PeaQew) <peaqew@gmail.com>
 > first created: 2021-01-13
-> version: 1.0.1 (2021-02-04)
+> version: 1.0.3 (2021-02-06)
 > description:
 	* This ExtendScript tool creates a piano roll-style MIDI visualizer inside of Adobe After Effects.
 
@@ -1052,8 +1052,8 @@ function getLatestMidiNote(midiFiles) {
             if (midiFiles[i].notes.length == 0)
                 continue;
 
-			var noteTime = undefined;
-			var noteDur = undefined;
+            var noteTime = undefined;
+            var noteDur = undefined;
 
             var noteIndex = midiFiles[i].notes.length - 1;
             while (noteDur == undefined) { // Find the last note with a duration
@@ -1792,7 +1792,6 @@ function createBarLines(timeSigMap, bpmMap, tempoMap, timeDivision, latestMidiNo
     var tempoIndex = 0;
     var timeSigIndex = 0;
     var currentTick = 0;
-    var currentPosition;
 
     var yPos = midiCustomSettings.barLineYPos;
     var barHeight = midiCustomSettings.barLineBarHeight;
@@ -1800,15 +1799,18 @@ function createBarLines(timeSigMap, bpmMap, tempoMap, timeDivision, latestMidiNo
 
     var stepNumber = 1;
     var barNumber = 1;
+    var currentMicrosecondsPerQuarterNote = tempoMap[0].microsecondsPerQuarterNote;
+
+    var metronomeTickCount = (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * Math.floor((timeDivision * (4 / timeSigMap[timeSigIndex].denominator)));
+    var metronomeTickDeltaSeconds = (currentMicrosecondsPerQuarterNote * metronomeTickCount) / timeDivision / 1000000;
+    var tCounter = 0;
     while (currentTime <= latestMidiNote) {
         var deltaSeconds = 0;
-
-        var currentMicrosecondsPerQuarterNote = 500000;
 
         var prevTickCounter = currentTick;
         var deltaTickCounter = 0;
 
-        var targetTick = currentTick + Math.floor((timeDivision * (4 / timeSigMap[timeSigIndex].denominator)));
+        var targetTick = currentTick + (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * Math.floor((timeDivision * (4 / timeSigMap[timeSigIndex].denominator)));
 
         while (currentTick < targetTick) {
             if (timeSigIndex + 1 < timeSigMap.length && currentTick + (targetTick - currentTick) >= timeSigMap[timeSigIndex + 1].tick) {
@@ -1819,33 +1821,42 @@ function createBarLines(timeSigMap, bpmMap, tempoMap, timeDivision, latestMidiNo
 
                 currentTick = timeSigMap[timeSigIndex].tick;
                 deltaTickCounter = currentTick - prevTickCounter;
-                deltaSeconds += (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
+
+                var metronomeTickCount = (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * Math.floor((timeDivision * (4 / timeSigMap[timeSigIndex].denominator)));
+                var metronomeTickDeltaSeconds = (currentMicrosecondsPerQuarterNote * metronomeTickCount) / timeDivision / 1000000;
+
+                deltaSeconds += (midiWndw.halfSpeedCheckbox.value == true ? 0.5 : 1) * (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
                 prevTickCounter = currentTick;
                 break;
             }
-            if (tempoIndex < tempoMap.length) {
-                currentMicrosecondsPerQuarterNote = (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * tempoMap[tempoIndex].microsecondsPerQuarterNote;
-                if (tempoIndex + 1 >= tempoMap.length) {
-                    currentTick = targetTick;
-                } else if (targetTick <= tempoMap[tempoIndex + 1].tick) {
-                    currentTick = targetTick;
+            currentMicrosecondsPerQuarterNote = (midiWndw.halfSpeedCheckbox.value == true ? 2 : 1) * tempoMap[tempoIndex].microsecondsPerQuarterNote;
+            do {
+                if (tempoIndex < tempoMap.length) {
+                    if (tempoIndex + 1 >= tempoMap.length) {
+                        currentTick = targetTick;
+                    } else if (targetTick <= tempoMap[tempoIndex + 1].tick) {
+                        currentTick = targetTick;
+                    } else {
+                        currentTick = tempoMap[tempoIndex + 1].tick;
+                        tempoIndex++;
+                    }
                 } else {
-                    currentTick = tempoMap[tempoIndex + 1].tick;
-                    tempoIndex++;
+                    currentTick = targetTick;
                 }
-            } else {
-                currentTick = targetTick;
-            }
-            deltaTickCounter = currentTick - prevTickCounter;
-            deltaSeconds += (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
-            prevTickCounter = currentTick;
+                deltaTickCounter = currentTick - prevTickCounter;
+                deltaSeconds += (midiWndw.halfSpeedCheckbox.value == true ? 0.5 : 1) * (currentMicrosecondsPerQuarterNote * deltaTickCounter) / timeDivision / 1000000;
+                prevTickCounter = currentTick;
+            } while (tempoIndex + 1 < tempoMap.length && targetTick > tempoMap[tempoIndex + 1].tick);
         }
-
         if (stepNumber > timeSigMap[timeSigIndex].numerator) {
             stepNumber = 1;
             barNumber++;
         }
-        var xPos = midiCustomSettings.noteHitXOffset + (currentTime * midiCustomSettings.velocityPerSecond /* * speedMultiplier */ );
+
+        var speedMultiplier = midiCustomSettings.bpmBasedSpeed ? (60000000.0 / tempoMap[0].microsecondsPerQuarterNote) / 120.0 : 1;
+        var xPos = midiCustomSettings.noteHitXOffset + ((metronomeTickDeltaSeconds * tCounter) * midiCustomSettings.velocityPerSecond * speedMultiplier);
+        tCounter++;
+
         if (stepNumber == 1) {
             var barTextLayer = comp.layers.addText();
             var barText = barTextLayer.property("Source Text");
@@ -1866,7 +1877,7 @@ function createBarLines(timeSigMap, bpmMap, tempoMap, timeDivision, latestMidiNo
         solid.property("transform").property("position").setValue([xPos, yPos]);
         solid.property("transform").property("anchorPoint").setValue([2, 0]);
 
-        midiWndw.pb.updateCurrent("Progress: " + Math.floor(currentTime / latestMidiNote * 100) + "% (" + Math.floor(currentTime / 60) + "m" + Math.floor(currentTime) % 60 + "s, " + barNumber + ":" + stepNumber + ")", currentTime / latestMidiNote * 100);
+        midiWndw.pb.updateCurrent("Progress: " + Math.floor(currentTime / latestMidiNote * 100) + "% (" + Math.floor(currentTime / 60) + "m" + Math.floor(currentTime) % 60 + "s, " + barNumber + ":" + stepNumber + ") " + deltaSeconds, currentTime / latestMidiNote * 100);
 
         currentTime += deltaSeconds;
         stepNumber++;
@@ -2230,9 +2241,9 @@ midiWndw.footer.rightGroup = midiWndw.footer.add("group");
 midiWndw.footer.rightGroup.alignment = ["right", "bottom"];
 midiWndw.footer.rightGroup.orientation = "column";
 
-var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v1.0.1");
+var versionText = midiWndw.footer.rightGroup.add("statictext", undefined, "v1.0.3");
 versionText.alignment = "right";
-versionText.helpTip = "Version 1.0.1, 2021-02-04";
+versionText.helpTip = "Version 1.0.3, 2021-02-06";
 
 midiWndw.footer.settingsBtn = midiWndw.footer.rightGroup.add("button", undefined, "Settings");
 midiWndw.footer.settingsBtn.onClick = function() {
